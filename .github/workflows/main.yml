@@ -1,0 +1,16 @@
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  hello_world_job:
+    runs-on: ubuntu-latest
+    name: ChatGTP explain code
+    steps:
+      - name: ChatGTP explain code
+        uses: cirolini/chatgpt-github-actions@v1
+        with:
+          openai_api_key: ${{ secrets.openai_api_key }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_pr_id: ${{ github.event.number }}
+      

@@ -1,0 +1,23 @@
+# action.yml
+name: 'Pushgateway POST'
+description: 'Post a metric to Pushgateway'
+inputs:
+  openai_api_key:  # id of input
+    description: 'OpenAI API Key'
+    required: true
+    default: ''
+  github_token:  # id of input
+    description: 'Github API Key'
+    required: true
+    default: ''
+  github_pr_id:  # id of input
+    description: 'Github PR ID'
+    required: true
+    default: ''
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.openai_api_key }}
+    - ${{ inputs.github_token }}
+    - ${{ inputs.github_pr_id }}
