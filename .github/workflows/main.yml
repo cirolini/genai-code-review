@@ -12,5 +12,6 @@ jobs:
         with:
           openai_api_key: ${{ secrets.openai_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo_name: ${{ github.event.repository.name }}
           github_pr_id: ${{ github.event.number }}
       

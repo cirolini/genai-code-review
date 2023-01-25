@@ -14,6 +14,10 @@ inputs:
     description: 'Github PR ID'
     required: true
     default: ''
+  github_repo_name: #id of input
+    description: 'Github Repo Name'
+    required: true
+    default: ''
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -21,3 +25,4 @@ runs:
     - ${{ inputs.openai_api_key }}
     - ${{ inputs.github_token }}
     - ${{ inputs.github_pr_id }}
+    - ${{ inputs.github_repo_name }}

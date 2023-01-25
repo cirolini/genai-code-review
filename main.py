@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--openai_api_key', help='Your OpenAI API Key')
 parser.add_argument('--github_token', help='Your Github Token')
 parser.add_argument('--github_pr_id', help='Your Github PR ID')
+parser.add_argument('--github_repo_name', help='Your Github Repo Name')
 args = parser.parse_args()
 
 # Authenticating with the OpenAI API
@@ -17,7 +18,7 @@ openai.api_key = args.openai_api_key
 g = Github(args.github_token)
 
 # Selecting the repository
-repo = g.get_repo("cirolini/chatgpt-github-actions")
+repo = g.get_repo(args.github_repo_name)
 
 # Listing pull requests
 pull_request = repo.get_pull(int(args.github_pr_id))
@@ -41,4 +42,3 @@ for commit in commits:
 
         # Adding a comment to the pull request with ChatGPT's response
         pull_request.create_issue_comment(f"ChatGPT's response to explain this code:\n {response['choices'][0]['text']}")
-        
