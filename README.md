@@ -1,35 +1,15 @@
 # Code Review with ChatGPT
 
-This project aims to automate code review using the ChatGPT language model. It connects to the Github API to select a specific repository and list the existing pull requests. Then it sends each code review to ChatGPT and asks for an evaluation on it.
+This project aims to automate code review using the ChatGPT language model. It integrates  with Github Actions, and upon receiving a Pull Request, it automatically sends each code review to ChatGPT for an explanation.
 
-## Prerequisites
-- Python 3.8+
-- [openai](https://openai.com/) API Key
-- [Github](https://github.com/) API Key
-- [PyGithub](https://pypi.org/project/PyGithub/)
-- [requests](https://pypi.org/project/requests/)
+# Prerequisite
 
-## Installation
-1. Clone this repository
-```
-git clone https://github.com/OWNER/REPO.git
-````
+First, you will need a personal API key from OpenAI which you can get here: https://openai.com/api/. To get an OpenAI API key, you can sign up for an account on the OpenAI website https://openai.com/signup/. Once you have signed up, you can create a new API key from your account settings.
 
-2. Install the dependencies
-```
-pip install -r requirements.txt
-```
+After creating your API Key in OpenAI, create it as a secret in your repository or organization with the following name: openai_api_key.
 
-3. Add your openai and Github API key to your environment variables
+You can do this by going to your repository/organization's settings, navigate to secrets and create a new secret with the name 'openai_api_key' and paste your OpenAI API key as the value.
 
-## Usage
-Run the main.py script
-```
-python main.py
-````
+Then you need to set up your project's permissions so that the Github Actions can write comments on Pull Requests. You can read more about this here: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
 
-## Contributing
-Feel free to contribute to the project. Any suggestion or correction will be greatly appreciated.
-
-## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+C
