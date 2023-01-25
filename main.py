@@ -1,6 +1,7 @@
 """This project aims to automate code review using the ChatGPT language model."""
 import argparse
 import openai
+import os
 from github import Github
 
 # Adding command-line arguments
@@ -8,7 +9,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--openai_api_key', help='Your OpenAI API Key')
 parser.add_argument('--github_token', help='Your Github Token')
 parser.add_argument('--github_pr_id', help='Your Github PR ID')
-parser.add_argument('--github_repo_name', help='Your Github Repo Name')
 args = parser.parse_args()
 
 # Authenticating with the OpenAI API
@@ -18,9 +18,9 @@ openai.api_key = args.openai_api_key
 g = Github(args.github_token)
 
 # Selecting the repository
-repo = g.get_repo(args.github_repo_name)
+repo = g.get_repo(os.getenv('GITHUB_REPOSITORY')
 
-# Listing pull requests
+# Get pull request
 pull_request = repo.get_pull(int(args.github_pr_id))
 
 commits = pull_request.get_commits()
