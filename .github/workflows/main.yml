@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     name: ChatGTP explain code
     steps:
+      - name: Echo Variable
+        run: echo  ${{ github.event.repository.name }}
       - name: ChatGTP explain code
         uses: cirolini/chatgpt-github-actions@v1
         with:
