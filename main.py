@@ -18,7 +18,7 @@ openai.api_key = args.openai_api_key
 g = Github(args.github_token)
 
 # Selecting the repository
-repo = g.get_repo(os.getenv('GITHUB_REPOSITORY')
+repo = g.get_repo(os.getenv('GITHUB_REPOSITORY'))
 
 # Get pull request
 pull_request = repo.get_pull(int(args.github_pr_id))
