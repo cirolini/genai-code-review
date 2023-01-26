@@ -1,6 +1,6 @@
 # action.yml
-name: 'Pushgateway POST'
-description: 'Post a metric to Pushgateway'
+name: 'Code Review with ChatGPT'
+description: 'This project aims to automate code review using the ChatGPT language model. It integrates  with Github Actions, and upon receiving a Pull Request, it automatically sends each code review to ChatGPT for an explanation.'
 inputs:
   openai_api_key:  # id of input
     description: 'OpenAI API Key'
