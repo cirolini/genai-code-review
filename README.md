@@ -49,5 +49,9 @@ jobs:
 
 This is an example of how to use this action in your workflow, which is triggered by pull request events. It uses the `openai_api_key`, `github_token`, and `github_pr_id` inputs to authenticate with the OpenAI API and Github API, and provide the necessary information for the action to run.
 
+Comments will appear like this:
+
+![chatgptcommentonpr](img/chatgpt-comment-on-pr.png "ChatGPT comment on PR")
+
 ## Authors
 - **CiroLini** - [cirolini](https://github.com/cirolini)
