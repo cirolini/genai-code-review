@@ -14,6 +14,18 @@ inputs:
     description: 'Github PR ID'
     required: true
     default: ''
+  openai_engine:  # id of input
+    description: 'GPT-3 models can understand and generate natural language. We offer four main models with different levels of power suitable for different tasks. Davinci is the most capable model, and Ada is the fastest.'
+    required: false
+    default: 'text-davinci-002'
+  openai_temperature:  # id of input
+    description: 'What sampling temperature to use. Higher values means the model will take more risks. Try 0.9 for more creative applications, and 0 (argmax sampling) for ones with a well-defined answer.'
+    required: false
+    default: '0.5'
+  openai_max_tokens:  # id of input
+    description: 'The maximum number of tokens to generate in the completion.'
+    required: false
+    default: '2048'
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -21,3 +33,6 @@ runs:
     - ${{ inputs.openai_api_key }}
     - ${{ inputs.github_token }}
     - ${{ inputs.github_pr_id }}
+    - ${{ inputs.openai_engine }}
+    - ${{ inputs.openai_temperature }}
+    - ${{ inputs.openai_max_tokens }}
