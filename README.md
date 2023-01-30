@@ -35,7 +35,7 @@ jobs:
     name: ChatGPT explain code
     steps:
       - name: ChatGTP explain code
-        uses: cirolini/chatgpt-github-actions@v1
+        uses: cirolini/chatgpt-github-actions@v1.1
         with:
           openai_api_key: ${{ secrets.openai_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
