@@ -42,8 +42,8 @@ for commit in commits:
         response = openai.Completion.create(
             engine=args.openai_engine,
             prompt=(f"Explain Code:\n```{content}```"),
-            temperature=args.openai_temperature,
-            max_tokens=args.openai_max_tokens
+            temperature=float(args.openai_temperature),
+            max_tokens=int(args.openai_max_tokens)
         )
 
         # Adding a comment to the pull request with ChatGPT's response
