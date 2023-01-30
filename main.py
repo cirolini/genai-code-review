@@ -47,4 +47,4 @@ for commit in commits:
         )
 
         # Adding a comment to the pull request with ChatGPT's response
-        pull_request.create_issue_comment(f"ChatGPT's response to explain this code:\n {response['choices'][0]['text']}")
+        pull_request.create_issue_comment(f"ChatGPT's response about `{file.filename}`:\n {response['choices'][0]['text']}")
