@@ -1,16 +1,18 @@
 on:
-  pull_request:
-    types: [opened, synchronize]
+  pull_request: # Trigger the workflow on pull request events
+    types: [opened, synchronize] # Run the workflow when pull request is opened or synchronized
 
 jobs:
-  hello_world_job:
-    runs-on: ubuntu-latest
-    name: ChatGTP explain code
+  hello_world_job: # Define the job
+    runs-on: ubuntu-latest # Specify the runner to run the job on
+    name: ChatGPT explain code # Job name
     steps:
-      - name: ChatGTP explain code
-        uses: cirolini/chatgpt-github-actions@v1
+      - name: ChatGPT explain code # Step name
+        uses: cirolini/chatgpt-github-actions@v1 # Use the ChatGPT Github Actions from cirolini repository
         with:
-          openai_api_key: ${{ secrets.openai_api_key }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_pr_id: ${{ github.event.number }}
-      
+          openai_api_key: ${{ secrets.openai_api_key }} # Get the OpenAI API key from repository secrets
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Get the Github Token from repository secrets
+          github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
+          openai_engine: "text-davinci-002" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
+          openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
+          openai_max_tokens: 2048 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
