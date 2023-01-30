@@ -8,7 +8,7 @@ jobs:
     name: ChatGPT explain code # Job name
     steps:
       - name: ChatGPT explain code # Step name
-        uses: cirolini/chatgpt-github-actions@v1.1 # Use the ChatGPT Github Actions from cirolini repository
+        uses: cirolini/chatgpt-github-actions@v1.2 # Use the ChatGPT Github Actions from cirolini repository
         with:
           openai_api_key: ${{ secrets.openai_api_key }} # Get the OpenAI API key from repository secrets
           github_token: ${{ secrets.GITHUB_TOKEN }} # Get the Github Token from repository secrets
