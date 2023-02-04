@@ -26,6 +26,10 @@ inputs:
     description: 'The maximum number of tokens to generate in the completion.'
     required: false
     default: '2048'
+  mode:  # id of input
+    description: 'How to capture PR changes. Options: files, patch'
+    required: false
+    default: 'files'
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -36,3 +40,4 @@ runs:
     - ${{ inputs.openai_engine }}
     - ${{ inputs.openai_temperature }}
     - ${{ inputs.openai_max_tokens }}
+    - ${{ inputs.mode }}
