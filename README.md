@@ -35,7 +35,7 @@ jobs:
     name: ChatGPT explain code
     steps:
       - name: ChatGTP explain code
-        uses: cirolini/chatgpt-github-actions@v1.2
+        uses: cirolini/chatgpt-github-actions@v1.3
         with:
           openai_api_key: ${{ secrets.openai_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -73,3 +73,6 @@ When sending code to the ChatGPT language model, it is important to consider the
 
 ## Authors
 - **CiroLini** - [cirolini](https://github.com/cirolini)
+
+## Contributors
+- **Glauber Borges** - [glauberborges](https://github.com/glauberborges)
