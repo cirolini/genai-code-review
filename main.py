@@ -109,7 +109,7 @@ def review():
             file_name = diff_text.split("b/")[1].splitlines()[0]
             print(file_name)
 
-            response = openai.Completion.create(
+            response = openai.ChatCompletion.create(
                 engine=args.openai_engine,
                 prompt=(f"Please review code diff:\n```{diff_text}```"),
                 temperature=float(args.openai_temperature),
