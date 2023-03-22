@@ -27,9 +27,14 @@ inputs:
     required: false
     default: '2048'
   mode:  # id of input
-    description: 'How to capture PR changes. Options: files, patch'
+    description: 'How to capture PR changes. Options: files, patch, review'
     required: false
     default: 'files'
+    type: choice
+    options:
+    - files
+    - patch
+    - review
 runs:
   using: 'docker'
   image: 'Dockerfile'
