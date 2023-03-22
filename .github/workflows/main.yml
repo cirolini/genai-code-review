@@ -18,3 +18,4 @@ jobs:
           openai_engine: "text-davinci-002" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
           openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
           openai_max_tokens: 2048 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
+          mode: review
