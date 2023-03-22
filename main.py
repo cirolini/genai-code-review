@@ -149,5 +149,5 @@ if (args.mode == "files"):
 if (args.mode == "patch"):
     patch()
 
-if (arg.mode == "review"):
+if (args.mode == "review"):
     review()
