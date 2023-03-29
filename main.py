@@ -42,14 +42,14 @@ def files():
             # Sending the code to ChatGPT
             response = openai.Completion.create(
                 engine=args.openai_engine,
-                prompt=(f"Explain Code:\n```{content}```"),
+                prompt=(f"Act as Linus Torvalds, use more aggressive words, format the response as Markdown, review this code:\n```{content}```"),
                 temperature=float(args.openai_temperature),
                 max_tokens=int(args.openai_max_tokens)
             )
 
             # Adding a comment to the pull request with ChatGPT's response
             pull_request.create_issue_comment(
-                f"ChatGPT's response about `{file.filename}`:\n {response['choices'][0]['text']}")
+                f"`{file.filename}`:\n {response['choices'][0]['text']}")
 
 
 def patch():
@@ -74,7 +74,7 @@ def patch():
 
             response = openai.Completion.create(
                 engine=args.openai_engine,
-                prompt=(f"Summarize what was done in this diff:\n```{diff_text}```"),
+                prompt=(f"Act as Linus Torvalds, use more aggressive words, format the response as Markdown, review this this changes:\n```{diff_text}```"),
                 temperature=float(args.openai_temperature),
                 max_tokens=int(args.openai_max_tokens)
             )
@@ -82,11 +82,11 @@ def patch():
             print(response['choices'][0]['text'])
 
             pull_request.create_issue_comment(
-                f"ChatGPT's response about ``{file_name}``:\n {response['choices'][0]['text']}")
+                f"``{file_name}``\n {response['choices'][0]['text']}")
         except Exception as e:
             error_message = str(e)
             print(error_message)
-            pull_request.create_issue_comment(f"ChatGPT was unable to process the response about {file_name}")
+#             pull_request.create_issue_comment(f"ChatGPT was unable to process the response about {file_name}")
 
 
 def get_content_patch():
