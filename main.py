@@ -39,6 +39,14 @@ def files():
             filename = file.filename
             content = repo.get_contents(filename, ref=commit.sha).decoded_content
 
+            # Filtering out binary files
+            if not isinstance(content, str):
+                continue
+
+            # Filtering out files that are too large
+            if len(content) > 100000:
+                continue
+
             # Sending the code to ChatGPT
             response = openai.Completion.create(
                 engine=args.openai_engine,
