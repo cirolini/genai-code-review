@@ -42,7 +42,7 @@ def files():
             # Sending the code to ChatGPT
             response = openai.Completion.create(
                 engine=args.openai_engine,
-                prompt=(f"Explain Code:\n```{content}```"),
+                prompt=(f"Please review the following code for clarity, efficiency, and adherence to best practices. Highlight any areas for improvement, suggest optimizations, and note potential bugs or security vulnerabilities. Also, consider the maintainability and scalability of the code.:\n ### Code \n```{content}```"),
                 temperature=float(args.openai_temperature),
                 max_tokens=int(args.openai_max_tokens)
             )
