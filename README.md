@@ -40,10 +40,10 @@ jobs:
           openai_api_key: ${{ secrets.openai_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.number }}
-          openai_engine: "text-davinci-002" #optional
+          openai_engine: "davinci-002" #optional
           openai_temperature: 0.5 #optional
           openai_max_tokens: 2048 #optional
-          mode: file # file or patch 
+          mode: files # files or patch
 ```
 
 In the above workflow, the pull_request event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the ubuntu-latest runner and uses the cirolini/chatgpt-github-actions@v1 action.
@@ -52,7 +52,7 @@ The openai_api_key is passed from the secrets context, and the github_token is a
 
 ## How it works
 
-### file
+### files
 This action is triggered when a pull request is opened or updated. The action authenticates with the OpenAI API using the provided API key, and with the Github API using the provided token. It then selects the repository using the provided repository name, and the pull request ID. 
 For each commit in the pull request, it gets the modified files, gets the file name and content, sends the code to ChatGPT for an explanation, and adds a comment to the pull request with ChatGPT's response.
 
