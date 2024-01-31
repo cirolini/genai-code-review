@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ChatGPT explain code
     steps:
-      - name: ChatGTP explain code
+      - name: ChatGPT explain code
         uses: cirolini/chatgpt-github-actions@v1.3
         with:
           openai_api_key: ${{ secrets.openai_api_key }}
