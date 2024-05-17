@@ -21,7 +21,7 @@ def main():
                                  env_vars['OPENAI_TEMPERATURE'], env_vars['OPENAI_MAX_TOKENS'])
 
     language = env_vars.get('LANGUAGE', 'en')
-    custom_prompt = env_vars.get('CUSTOM_PROMPT', None)
+    custom_prompt = env_vars.get('CUSTOM_PROMPT')
 
     if env_vars['MODE'] == "files":
         process_files(github_client, openai_client, env_vars['GITHUB_PR_ID'], language, custom_prompt)

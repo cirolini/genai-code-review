@@ -1,6 +1,6 @@
-# Code Review with ChatGPT
+# GenAI Code Review
 
-This project aims to automate code review using the ChatGPT language model. It integrates  with Github Actions, and upon receiving a Pull Request, it automatically sends each code review to ChatGPT for an explanation.
+This project aims to automate code review using the ChatGPT language model. It integrates with Github Actions, and upon receiving a Pull Request, it automatically sends each code review to ChatGPT for an explanation.
 
 # Setup
 
@@ -30,20 +30,22 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  hello_world_job:
+  review_job:
     runs-on: ubuntu-latest
-    name: ChatGPT explain code
+    name: ChatGPT Code Review
     steps:
-      - name: ChatGTP explain code
+      - name: ChatGPT Review
         uses: cirolini/chatgpt-github-actions@v1.3
         with:
           openai_api_key: ${{ secrets.openai_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.number }}
-          openai_engine: "text-davinci-002" #optional
-          openai_temperature: 0.5 #optional
-          openai_max_tokens: 2048 #optional
-          mode: file # file or patch 
+          openai_engine: "gpt-3.5-turbo" # optional
+          openai_temperature: 0.5 # optional
+          openai_max_tokens: 2048 # optional
+          mode: files # files or patch
+          language: en # optional, default is 'en'
+          custom_prompt: "" # optional
 ```
 
 In the above workflow, the pull_request event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the ubuntu-latest runner and uses the cirolini/chatgpt-github-actions@v1 action.
