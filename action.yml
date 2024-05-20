@@ -19,11 +19,11 @@ inputs:
   openai_temperature:
     description: "The temperature for OpenAI responses. Controls the creativity of the responses. Higher values (e.g., 0.9) make output more random, while lower values (e.g., 0.1) make it more focused and deterministic."
     required: false
-    default: "0.7"
+    default: "0.5"
   openai_max_tokens:
     description: "The maximum number of tokens to generate in the OpenAI response. Example: 1000"
     required: false
-    default: "1000"
+    default: "2048"
   mode:
     description: "The mode of operation for the action. Options: 'files' to review file changes, 'patch' to review the patch changes."
     required: false

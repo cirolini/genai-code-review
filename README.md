@@ -4,7 +4,7 @@ This project aims to automate code review using the ChatGPT language model. It i
 
 # Setup
 
-The following steps will guide you in setting up the code review automation with ChatGPT.
+The following steps will guide you in setting up the code review automation with GPT.
 
 ## Prerequisites
 Before you begin, you need to have the following:
@@ -52,9 +52,43 @@ In the above workflow, the pull_request event triggers the workflow whenever a p
 
 The openai_api_key is passed from the secrets context, and the github_token is also passed from the secrets context. The github_pr_id is passed from the github.event.number context. The other three input parameters, openai_engine, openai_temperature, and openai_max_tokens, are optional and have default values.
 
+## Configuration Parameters
+
+### `openai_engine`
+- **Description**: The OpenAI model to use for generating responses.
+- **Default**: `"gpt-3.5-turbo"`
+- **Options**: Models like `gpt-4o`, `gpt-4-turbo`, etc.
+
+### `openai_temperature`
+- **Description**: Controls the creativity of the AI's responses. Higher values make the output more random, while lower values make it more focused and deterministic.
+- **Default**: `0.5`
+- **Range**: `0.0` to `1.0`
+
+### `openai_max_tokens`
+- **Description**: The maximum number of tokens to generate in the completion.
+- **Default**: `2048`
+- **Range**: Up to the model's maximum context length.
+
+### `mode`
+- **Description**: Determines the method of analysis for the pull request.
+- **Options**:
+  - `files`: Analyzes the files changed in the last commit.
+  - `patch`: Analyzes the patch content.
+
+### `language`
+- **Description**: The language in which the review comments will be written.
+- **Default**: `en` (English)
+- **Options**: Any valid language code, e.g., `pt-br` for Brazilian Portuguese.
+
+### `custom_prompt`
+- **Description**: Custom instructions for the AI to follow when generating the review.
+- **Default**: `""` (empty)
+- **Usage**: Provide specific guidelines or focus areas for the AI's code review.
+
+
 ## How it works
 
-### file
+### files
 This action is triggered when a pull request is opened or updated. The action authenticates with the OpenAI API using the provided API key, and with the Github API using the provided token. It then selects the repository using the provided repository name, and the pull request ID. 
 For each commit in the pull request, it gets the modified files, gets the file name and content, sends the code to ChatGPT for an explanation, and adds a comment to the pull request with ChatGPT's response.
 
@@ -64,6 +98,42 @@ Every PR has a file called patch which is where the difference between 2 files, 
 Comments will appear like this:
 
 ![chatgptcommentonpr](img/chatgpt-comment-on-pr.png "ChatGPT comment on PR")
+
+## Custom Prompt
+
+### Overview
+
+The `custom_prompt` parameter allows users to tailor the AI's review to specific needs. By providing custom instructions, users can focus the review on particular aspects or request additional information. This flexibility enhances the usefulness of the AI-generated review comments.
+
+### How to Use
+
+To use a custom prompt, simply provide a string with your instructions. For example, to ask the AI to rate the code on a scale of 1 to 10, set the `custom_prompt` parameter as follows:
+
+```yaml
+custom_prompt: "Give a rating from 1 to 10 for this code:"
+````
+
+### Potential
+Using a custom prompt can direct the AI to focus on specific areas, such as:
+
+* Code quality and readability
+* Security vulnerabilities
+* Performance optimizations
+* Adherence to coding standards
+* Specific concerns or questions about the code
+
+## Implementation in Code
+The custom_prompt is integrated into the review generation as shown:
+
+```
+if custom_prompt:
+      logging.info(f"Using custom prompt: {custom_prompt}")
+      return f"{custom_prompt}\n### Code\n```{content}```\n\nWrite this code review in the following {language}:\n\n"
+  return (f"Please review the following code for clarity, efficiency, and adherence to best practices. "
+          f"Identify any ar...
+```
+
+This feature allows you to harness the power of AI in a way that best suits your specific code review requirements.
 
 ## Security and Privacity
 
@@ -78,3 +148,6 @@ When sending code to the ChatGPT language model, it is important to consider the
 
 ## Contributors
 - **Glauber Borges** - [glauberborges](https://github.com/glauberborges)
+
+# License
+This project is licensed under the MIT License - see the LICENSE file for details.

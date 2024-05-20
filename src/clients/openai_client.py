@@ -1,5 +1,10 @@
-from openai import OpenAI
+"""
+Este módulo contém a classe OpenAIClient, que é usada para interagir com a API do OpenAI.
+A classe OpenAIClient pode ser usada para gerar respostas de um modelo especificado do OpenAI.
+"""
+
 import logging
+from openai import OpenAI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -9,7 +14,7 @@ class OpenAIClient:
     A client for interacting with the OpenAI API to generate responses using a specified model.
     """
 
-    def __init__(self, api_key, model, temperature, max_tokens):
+    def __init__(self, model, temperature, max_tokens):
         """
         Initialize the OpenAIClient with API key, model, temperature, and max tokens.
 
@@ -24,9 +29,15 @@ class OpenAIClient:
             self.model = model
             self.temperature = temperature
             self.max_tokens = max_tokens
-            logging.info(f"OpenAI client initialized successfully, Model: {self.model}, temperature: {self.temperature}, max tokens: {self.max_tokens}")
+            logging.info(
+                "OpenAI client initialized successfully, "
+                "Model: %s, temperature: %s, max tokens: %s",
+                self.model,
+                self.temperature,
+                self.max_tokens
+            )
         except Exception as e:
-            logging.error(f"Error initializing OpenAI client: {e}")
+            logging.error("Error initializing OpenAI client: %s", e)
             raise
 
     def generate_response(self, prompt):
@@ -56,5 +67,5 @@ class OpenAIClient:
             logging.info("Response generated successfully.")
             return response.choices[0].message.content
         except Exception as e:
-            logging.error(f"Error generating response from OpenAI model: {e}")
+            logging.error("Error generating response from OpenAI model: %s", e)
             raise

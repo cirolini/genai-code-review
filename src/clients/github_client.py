@@ -1,7 +1,14 @@
+"""
+Este módulo contém a classe GithubClient, que é usada para interagir com a API do Github.
+A classe GithubClient pode ser usada para recuperar informações sobre commits, conteúdo de 
+arquivos e patches de pull requests.
+"""
+
 import os
+import logging
 import requests
 from github import Github
-import logging
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,9 +29,9 @@ class GithubClient:
             self.client = Github(token)
             self.repo_name = os.getenv('GITHUB_REPOSITORY')
             self.repo = self.client.get_repo(self.repo_name)
-            logging.info(f"Initialized GitHub client for repository: {self.repo_name}")
+            logging.info("Initialized GitHub client for repository: %s", self.repo_name)
         except Exception as e:
-            logging.error(f"Error initializing GitHub client: {e}")
+            logging.error("Error initializing GitHub client: %s", e)
             raise
 
     def get_pr(self, pr_id):
@@ -39,10 +46,10 @@ class GithubClient:
         """
         try:
             pr = self.repo.get_pull(pr_id)
-            logging.info(f"Retrieved PR ID: {pr_id}")
+            logging.info("Retrieved PR ID: %s", pr_id)
             return pr
         except Exception as e:
-            logging.error(f"Error retrieving PR ID {pr_id}: {e}")
+            logging.error("Error retrieving PR ID %s: %s", pr_id, e)
             raise
 
     def get_pr_comments(self, pr_id):
@@ -58,10 +65,10 @@ class GithubClient:
         try:
             pr = self.get_pr(pr_id)
             comments = pr.get_issue_comments()
-            logging.info(f"Retrieved comments for PR ID: {pr_id}")
+            logging.info("Retrieved comments for PR ID: %s", pr_id)
             return comments
         except Exception as e:
-            logging.error(f"Error retrieving comments for PR ID {pr_id}: {e}")
+            logging.error("Error retrieving comments for PR ID %s: %s", pr_id, e)
             raise
 
     def post_comment(self, pr_id, body):
@@ -78,10 +85,10 @@ class GithubClient:
         try:
             pr = self.get_pr(pr_id)
             comment = pr.create_issue_comment(body)
-            logging.info(f"Posted comment to PR ID: {pr_id}")
+            logging.info("Posted comment to PR ID: %s", pr_id)
             return comment
         except Exception as e:
-            logging.error(f"Error posting comment to PR ID {pr_id}: {e}")
+            logging.error("Error posting comment to PR ID %s: %s", pr_id, e)
             raise
 
     def get_commit_files(self, commit):
@@ -96,10 +103,10 @@ class GithubClient:
         """
         try:
             files = commit.files
-            logging.info(f"Retrieved files for commit: {commit.sha}")
+            logging.info("Retrieved files for commit: %s", commit.sha)
             return files
         except Exception as e:
-            logging.error(f"Error retrieving files for commit {commit.sha}: {e}")
+            logging.error("Error retrieving files for commit %s: %s", commit.sha, e)
             raise
 
     def get_file_content(self, commit_sha, filename):
@@ -115,10 +122,15 @@ class GithubClient:
         """
         try:
             content = self.repo.get_contents(filename, ref=commit_sha).decoded_content.decode()
-            logging.info(f"Retrieved content for file: {filename} at commit: {commit_sha}")
+            logging.info("Retrieved content for file: %s at commit: %s", filename, commit_sha)
             return content
         except Exception as e:
-            logging.error(f"Error retrieving content for file {filename} at commit {commit_sha}: {e}")
+            logging.error(
+                "Error retrieving content for file %s at commit %s: %s",
+                filename,
+                commit_sha,
+                e
+            )
             raise
 
     def get_pr_patch(self, pr_id):
@@ -137,10 +149,10 @@ class GithubClient:
                 'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
                 'Accept': 'application/vnd.github.v3.diff'
             }
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=60)
             response.raise_for_status()
-            logging.info(f"Retrieved patch for PR ID: {pr_id}")
+            logging.info("Retrieved patch for PR ID: %s", pr_id)
             return response.text
         except requests.RequestException as e:
-            logging.error(f"Error retrieving patch for PR ID {pr_id}: {e}")
+            logging.error("Error retrieving patch for PR ID %s: %s", pr_id, e)
             raise
