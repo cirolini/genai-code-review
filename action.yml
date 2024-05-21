@@ -48,3 +48,5 @@ runs:
     OPENAI_TEMPERATURE: ${{ inputs.openai_temperature }}
     OPENAI_MAX_TOKENS: ${{ inputs.openai_max_tokens }}
     MODE: ${{ inputs.mode }}
+    LANGUAGE: ${{ inputs.language }} 
+    CUSTOM_PROMPT: ${{ inputs.custom_prompt }} 
