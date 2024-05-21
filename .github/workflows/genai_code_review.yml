@@ -10,7 +10,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: GenAI Code Review
-        uses: cirolini/genai-code-review@v2.1
+        uses: cirolini/genai-code-review@v2.2
         with:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
