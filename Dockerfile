@@ -1,13 +1,20 @@
-# Container image that runs your code
-FROM python:3.8-slim
+# Use the official Python base image
+FROM python:3.12
 
-# Instalando as dependencias
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the requirements file to the container
 COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# Copies your code file from your action repository to the filesystem path `/` of the container
-COPY entrypoint.sh /entrypoint.sh
-COPY main.py /main.py
+# Install the Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["/entrypoint.sh"]
+# Copy all the source code to the working directory
+COPY . .
+
+# Add the src directory to the PYTHONPATH
+ENV PYTHONPATH="${PYTHONPATH}:/app/src"
+
+# Set the command to execute the main Python script
+CMD ["python", "src/main.py"]

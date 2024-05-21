@@ -1,43 +1,38 @@
-# action.yml
-name: 'Code Review with ChatGPT'
-description: 'Automating code review using ChatGPT with Github Actions integration on PRs for code explanations.'
-inputs:
-  openai_api_key:  # id of input
-    description: 'OpenAI API Key'
-    required: true
-    default: ''
-  github_token:  # id of input
-    description: 'Github API Key'
-    required: true
-    default: ''
-  github_pr_id:  # id of input
-    description: 'Github PR ID'
-    required: true
-    default: ''
-  openai_engine:  # id of input
-    description: 'GPT-3 models can understand and generate natural language. We offer four main models with different levels of power suitable for different tasks. Davinci is the most capable model, and Ada is the fastest.'
-    required: false
-    default: 'text-davinci-002'
-  openai_temperature:  # id of input
-    description: 'What sampling temperature to use. Higher values means the model will take more risks. Try 0.9 for more creative applications, and 0 (argmax sampling) for ones with a well-defined answer.'
-    required: false
-    default: '0.5'
-  openai_max_tokens:  # id of input
-    description: 'The maximum number of tokens to generate in the completion.'
-    required: false
-    default: '2048'
-  mode:  # id of input
-    description: 'How to capture PR changes. Options: files, patch'
-    required: false
-    default: 'files'
+name: "ChatGPT GitHub Actions"
+description: "This GitHub Action automates code review for pull requests using OpenAI's GPT models. By integrating this action into your CI/CD pipeline, it provides detailed, AI-generated reviews of your code directly within the PR comments. This tool helps maintain code quality, ensures adherence to best practices, and highlights potential improvements and bugs."
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.openai_api_key }}
-    - ${{ inputs.github_token }}
-    - ${{ inputs.github_pr_id }}
-    - ${{ inputs.openai_engine }}
-    - ${{ inputs.openai_temperature }}
-    - ${{ inputs.openai_max_tokens }}
-    - ${{ inputs.mode }}
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GITHUB_PR_ID: ${{ github.event.pull_request.number }}
+    OPENAI_MODEL: ${{ inputs.openai_model }}
+    OPENAI_TEMPERATURE: ${{ inputs.openai_temperature }}
+    OPENAI_MAX_TOKENS: ${{ inputs.openai_max_tokens }}
+    MODE: ${{ inputs.mode }}
+inputs:
+  openai_model:
+    description: "The OpenAI model to use for generating responses. Examples: 'gpt-3.5-turbo', 'gpt-4'"
+    required: false
+    default: "gpt-3.5-turbo"
+  openai_temperature:
+    description: "The temperature for OpenAI responses. Controls the creativity of the responses. Higher values (e.g., 0.9) make output more random, while lower values (e.g., 0.1) make it more focused and deterministic."
+    required: false
+    default: "0.5"
+  openai_max_tokens:
+    description: "The maximum number of tokens to generate in the OpenAI response. Example: 1000"
+    required: false
+    default: "2048"
+  mode:
+    description: "The mode of operation for the action. Options: 'files' to review file changes, 'patch' to review the patch changes."
+    required: false
+    default: "files"
+ language:
+    description: "The language for the code review"
+    required: false
+    default: "en"  # English as the default language
+  custom_prompt:
+    description: "Custom prompt to use for generating responses. If not provided, a default prompt will be used based on the mode."
+    required: false
+    default: ""
