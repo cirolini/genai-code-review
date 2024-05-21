@@ -1,18 +1,20 @@
 on:
-  pull_request: # Trigger the workflow on pull request events
-    types: [opened, synchronize] # Run the workflow when pull request is opened or synchronized
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
-  genai_code_review: # Define the job
-    runs-on: ubuntu-latest # Specify the runner to run the job on
-    name: GenAI Code Review # Job name
+  genai_code_review:
+    runs-on: ubuntu-latest
+    name: GenAI Code Review
     steps:
-      - name: GenAI Code Review # Step name
-        uses: cirolini/genai-code-review@v2 # Use the ChatGPT Github Actions from cirolini repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: GenAI Code Review
+        uses: cirolini/genai-code-review@v2
         with:
-          openai_api_key: ${{ secrets.openai_api_key }} # Get the OpenAI API key from repository secrets
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Get the Github Token from repository secrets
-          github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
-          openai_model: "gpt-3.5-turbo" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
-          openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
-          openai_max_tokens: 2048 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_pr_id: ${{ github.event.pull_request.number }}
+          openai_model: "gpt-3.5-turbo"
+          openai_temperature: 0.5
+          openai_max_tokens: 2048
