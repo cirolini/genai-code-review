@@ -2,6 +2,11 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+env:
+  openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+  github_token: ${{ secrets.GITHUB_TOKEN }}
+  github_pr_id: ${{ github.event.pull_request.number }}
+
 jobs:
   hello_world_job:
     runs-on: ubuntu-latest
@@ -12,9 +17,6 @@ jobs:
       - name: GenAI Code Review
         uses: cirolini/genai-code-review@v2
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_pr_id: ${{ github.event.pull_request.number }}
           openai_model: "gpt-3.5-turbo"
           openai_temperature: 0.5
           openai_max_tokens: 2048
