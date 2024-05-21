@@ -97,7 +97,7 @@ Every PR has a file called patch which is where the difference between 2 files, 
 
 Comments will appear like this:
 
-![chatgptcommentonpr](img/chatgpt-comment-on-pr.png "ChatGPT comment on PR")
+![genaicodereview](img/genai_code_review.png "GenAI Code Review")
 
 ## Custom Prompt
 
