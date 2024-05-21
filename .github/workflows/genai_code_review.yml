@@ -3,7 +3,7 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  hello_world_job:
+  genai_code_review:
     runs-on: ubuntu-latest
     name: GenAI Code Review
     steps:
