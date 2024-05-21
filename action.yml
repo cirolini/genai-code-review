@@ -28,7 +28,7 @@ inputs:
     description: "The mode of operation for the action. Options: 'files' to review file changes, 'patch' to review the patch changes."
     required: false
     default: "files"
- language:
+  language:
     description: "The language for the code review"
     required: false
     default: "en"  # English as the default language
