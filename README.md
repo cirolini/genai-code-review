@@ -1,6 +1,6 @@
 # GenAI Code Review
 
-This project aims to automate code review using the ChatGPT language model. It integrates with Github Actions, and upon receiving a Pull Request, it automatically sends each code review to ChatGPT for an explanation.
+This project aims to automate code review using the GPT language model. It integrates with Github Actions and, upon receiving a Pull Request, automatically submits each code change to GPT for review.
 
 # Setup
 
