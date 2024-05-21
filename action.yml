@@ -1,16 +1,5 @@
 name: "ChatGPT GitHub Actions"
 description: "This GitHub Action automates code review for pull requests using OpenAI's GPT models. By integrating this action into your CI/CD pipeline, it provides detailed, AI-generated reviews of your code directly within the PR comments. This tool helps maintain code quality, ensures adherence to best practices, and highlights potential improvements and bugs."
-runs:
-  using: "docker"
-  image: "Dockerfile"
-  env:
-    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    GITHUB_PR_ID: ${{ github.event.pull_request.number }}
-    OPENAI_MODEL: ${{ inputs.openai_model }}
-    OPENAI_TEMPERATURE: ${{ inputs.openai_temperature }}
-    OPENAI_MAX_TOKENS: ${{ inputs.openai_max_tokens }}
-    MODE: ${{ inputs.mode }}
 inputs:
   openai_api_key:  # id of input
     description: 'OpenAI API Key'
@@ -48,3 +37,14 @@ inputs:
     description: "Custom prompt to use for generating responses. If not provided, a default prompt will be used based on the mode."
     required: false
     default: ""
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GITHUB_PR_ID: ${{ github.event.pull_request.number }}
+    OPENAI_MODEL: ${{ inputs.openai_model }}
+    OPENAI_TEMPERATURE: ${{ inputs.openai_temperature }}
+    OPENAI_MAX_TOKENS: ${{ inputs.openai_max_tokens }}
+    MODE: ${{ inputs.mode }}
