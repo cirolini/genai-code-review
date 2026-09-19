@@ -93,6 +93,31 @@ class GithubClient:
             logger.error("Error posting comment to PR ID %s: %s", pr_id, e)
             raise
 
+    def get_pr_head_sha(self, pr_id):
+        """The SHA at the tip of the pull request branch."""
+        try:
+            sha = self.get_pr(pr_id).head.sha
+            logger.info("PR %s head is %s", pr_id, sha)
+            return sha
+        except Exception as e:
+            logger.error("Error reading head SHA for PR %s: %s", pr_id, e)
+            return None
+
+    def get_compare_patch(self, base_sha, head_sha):
+        """
+        The diff between two commits, for reviewing only what is new.
+
+        Used on `synchronize` so a push that adds one line does not re-review
+        — and re-comment on — the entire pull request.
+        """
+        url = f"{self.api_root}/repos/{self.repo_name}/compare/{base_sha}...{head_sha}"
+        headers = dict(self._api_headers())
+        headers["Accept"] = "application/vnd.github.v3.diff"
+        response = requests.get(url, headers=headers, timeout=60)
+        response.raise_for_status()
+        logger.info("Retrieved diff %s..%s", base_sha[:7], head_sha[:7])
+        return response.text
+
     def create_review(self, pr_id, comments, body):
         """
         Post one review containing every inline comment.

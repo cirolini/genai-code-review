@@ -57,6 +57,29 @@ inputs:
     description: "The language for the code review"
     required: false
     default: "en"  # English as the default language
+  max_comments:
+    description: "Maximum inline comments to post per review. Findings beyond this are counted and listed in the summary, not discarded. Default 5."
+    required: false
+    default: ""
+  min_severity:
+    description: "Lowest severity worth posting: blocker, major, minor, nit. Default nit."
+    required: false
+    default: ""
+  min_confidence:
+    description: "Lowest confidence worth posting, 0 to 1. Default 0."
+    required: false
+    default: ""
+  ignore_paths:
+    description: "Newline- or comma-separated globs to skip. Unset uses sensible defaults (lockfiles, generated and vendored code, snapshots, minified assets). Set to a single space to disable."
+    required: false
+  incremental:
+    description: "On a new push, review only the commits since the last review. Default true."
+    required: false
+    default: ""
+  panel:
+    description: "Experimental. Comma-separated providers to run as a panel, e.g. 'openai,anthropic'. Findings both report rank higher; findings only one reports are demoted. Roughly doubles cost."
+    required: false
+    default: ""
   custom_prompt:
     description: "Custom prompt to use for generating responses. If not provided, a default prompt will be used based on the mode."
     required: false
@@ -78,5 +101,11 @@ runs:
     OPENAI_TEMPERATURE: ${{ inputs.openai_temperature }}
     OPENAI_MAX_TOKENS: ${{ inputs.openai_max_tokens }}
     MODE: ${{ inputs.mode }}
+    MAX_COMMENTS: ${{ inputs.max_comments }}
+    MIN_SEVERITY: ${{ inputs.min_severity }}
+    MIN_CONFIDENCE: ${{ inputs.min_confidence }}
+    IGNORE_PATHS: ${{ inputs.ignore_paths }}
+    INCREMENTAL: ${{ inputs.incremental }}
+    PANEL: ${{ inputs.panel }}
     LANGUAGE: ${{ inputs.language }} 
     CUSTOM_PROMPT: ${{ inputs.custom_prompt }} 
