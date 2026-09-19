@@ -4,3 +4,4 @@ google-genai==2.24.0
 httpx==0.28.1
 requests==2.34.2
 PyGithub==2.10.0
+PyYAML==6.0.3

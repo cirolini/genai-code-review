@@ -80,6 +80,10 @@ inputs:
     description: "Experimental. Comma-separated providers to run as a panel, e.g. 'openai,anthropic'. Findings both report rank higher; findings only one reports are demoted. Roughly doubles cost."
     required: false
     default: ""
+  config_path:
+    description: "Repository config file. Action inputs take precedence over it. Default .genai-review.yml."
+    required: false
+    default: ""
   runlog_path:
     description: "Where to write the per-run JSON log. Upload it with actions/upload-artifact to keep a record of cost and coverage over time."
     required: false
@@ -112,5 +116,6 @@ runs:
     INCREMENTAL: ${{ inputs.incremental }}
     PANEL: ${{ inputs.panel }}
     RUNLOG_PATH: ${{ inputs.runlog_path }}
+    CONFIG_PATH: ${{ inputs.config_path }}
     LANGUAGE: ${{ inputs.language }} 
     CUSTOM_PROMPT: ${{ inputs.custom_prompt }} 

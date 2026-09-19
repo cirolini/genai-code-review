@@ -1,0 +1,50 @@
+# Repository configuration for cirolini/genai-code-review.
+#
+# Copy to `.genai-review.yml` at the repository root. Every key is optional.
+# Action inputs in the workflow take precedence over anything here, so a
+# workflow can always override the repository's defaults.
+#
+# There is deliberately no `api_key` key. Credentials belong in a repository
+# secret; a key in a file here is a key that gets committed by accident.
+
+# --- which model reviews the code ---------------------------------------
+provider: openai            # openai | anthropic | gemini | openai-compatible
+# model: gpt-5.6-luna       # defaults to a cost-conscious model per provider
+# base_url: http://localhost:11434/v1   # for openai-compatible only
+
+# --- how the review is posted -------------------------------------------
+mode: review                # review (inline comments) | files | patch (v2 behaviour)
+language: en                # language the findings are written in
+
+# --- spending the reviewer's attention ----------------------------------
+# The whole point of the tool. Findings beyond max_comments are counted and
+# listed in the summary, never silently dropped.
+max_comments: 5
+min_severity: nit           # blocker | major | minor | nit
+min_confidence: 0.0         # 0 to 1
+
+# Review only the commits since the last review, on a new push.
+incremental: true
+
+# Files that are never worth a human's review. Omit this key entirely to use
+# the built-in defaults (lockfiles, generated and vendored code, snapshots,
+# minified assets). Set it to an empty list to review everything.
+# ignore_paths:
+#   - "**/*.lock"
+#   - "docs/**"
+#   - "**/testdata/**"
+
+# --- model behaviour -----------------------------------------------------
+temperature: 0.5
+max_tokens: 2048
+
+# Extra instructions appended to the review prompt.
+# custom_prompt: "Pay particular attention to database migrations."
+
+# --- experimental --------------------------------------------------------
+# Run two providers and merge their findings. Findings both report rank
+# higher; findings only one reports are demoted. Roughly doubles cost and
+# latency, so measure before leaving it on — see docs/results/.
+# panel:
+#   - openai
+#   - anthropic
