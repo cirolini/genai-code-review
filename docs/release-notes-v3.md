@@ -1,7 +1,7 @@
-# v3 release notes (draft — not tagged)
+# v3.0.0 release notes
 
-This file is prepared, not published. Tagging a release, moving a tag and
-publishing to the Marketplace are all decisions for the maintainer.
+Released 2026-09-19. Published at
+https://github.com/cirolini/genai-code-review/releases/tag/v3.0.0
 
 ## Decisions taken
 
@@ -37,7 +37,7 @@ release.
 
 ---
 
-## Draft notes
+## Notes as published
 
 ### v3.0.0
 
