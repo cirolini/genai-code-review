@@ -248,28 +248,101 @@ that produced no findings would be a false claim rather than a neutral one.
 
 ### Results
 
-**Not yet measured.** `docs/results/` is empty at the time of writing because
-running the set needs API keys I had not wired up when the harness landed.
+Two models, 21 fixtures, one run each.
 
-I am leaving this section honest rather than filling it with numbers from a stub
-provider. In a case study about measurement, invented numbers would be worse
-than none. `make eval PROVIDER=openai` produces the table; the two comparisons
-that matter are budget on versus off, and single model versus panel.
+| Model | Precision | Recall | Noise rate | Cost / PR | Mean latency |
+|---|---|---|---|---|---|
+| `gemini-3.8-flash` | 100% | 93% | **0%** | $0.0009 | 5.0s |
+| `gpt-oss-120b` (via Groq) | 70% | 93% | **83%** | n/a | 1.7s |
 
-There is a harder admission underneath that one. At the time of writing, no
-part of v3 has run against a live provider at all — the repository's API key
-had expired, so every review CI attempted failed with a 401 before reaching a
-model. The adapters and model IDs are checked against each provider's own
-documentation and against the installed SDKs, which is not the same thing as a
-response coming back. That gap closes with one working key, and it should close
-before any of this is tagged as a release.
+**Recall did not separate them. Noise did.** Both found 14 of 15 seeded defects
+and both missed the same one. On the metric review tools usually report, these
+two models are identical.
+
+On the six clean diffs, where the correct behaviour is silence,
+`gemini-3.8-flash` said nothing six times. `gpt-oss-120b` commented on five of
+six.
+
+A reviewer using the second model would get a comment on nearly every pull
+request that changed nothing meaningful — a rename, a docstring, an added test
+— and would stop reading the bot inside a week. Its 93% recall is then worth
+nothing, because nobody is looking. That is the argument of this whole project,
+and it is pleasant to find it holds up when measured rather than asserted.
+
+The false positives are worth looking at individually, because they are not
+random. They are confident claims about code the model could not see: "Potential
+NameError due to undefined `DEFAULT_TIMEOUT`" on a diff that swaps a magic
+number for a constant defined elsewhere in the file; "Missing import for
+`Handler`" on a type annotation. **The reviewer receives the diff, not the
+surrounding file.** That is a deliberate trade — sending whole files is
+expensive and is what v2 did badly — but it has a specific cost: a model asked
+to review a fragment will invent problems about the parts it cannot see, and
+will sound certain doing it. The stronger model resisted this; the weaker one
+did not, and no prompt wording I tried changed that.
+
+### The budget comparison measured nothing
+
+`--compare-budget` produced identical rows for both models, because neither ever
+produced more than five findings on a single fixture. `max_comments: 5` never
+bound.
+
+That is a null result, not a vindication. The fixtures are one file and a
+handful of lines each; the budget is built for a forty-file pull request. The
+eval set cannot exercise the feature the project is named after, which is the
+most useful thing I learned from running it.
+
+### What running it actually caught
+
+Up to the moment I ran this, nothing in v3 had ever talked to a live model.
+Every adapter, every model ID and every structured-output parameter was checked
+against the providers' own documentation and against the installed SDKs. That
+felt like diligence. It was not the same thing.
+
+The first three live requests found three bugs, none of which any of the 213
+tests had caught:
+
+1. **The Gemini client was being garbage collected mid-call.**
+   `self._client().models.generate_content(...)` lets the client be collected as
+   soon as `.models` resolves, and its teardown closes the transport. Every
+   request failed with "Cannot send a request, as the client has been closed."
+   Binding the client to a local variable fixes it.
+
+2. **Gemini rejects `additionalProperties` with a 400** — and OpenAI's strict
+   mode *requires* it. The same schema could not go to both.
+
+3. **OpenAI strict mode forbids optional properties.** `required` must name
+   every key in `properties`; optionality has to be expressed as a nullable
+   type instead. My `suggestion` field was optional, so every strict-mode
+   request was rejected.
+
+The last two are one lesson: there is no such thing as "a JSON schema" you hand
+to several providers. The canonical schema is now provider-neutral and each
+adapter transforms it, with tests pinning both transforms.
+
+A fourth thing surfaced from the eval runs rather than the adapters. The first
+Groq run lost 10 of 21 cases to rate limiting, and the cases that failed were
+not a random sample — the clean diffs mostly succeeded while the seeded ones
+did not, which would have produced a flattering and completely false recall
+number. The runner now has a `--delay` flag, and I nearly published that first
+table before noticing.
+
+I record all of this because it is the honest counterweight to everything above.
+Careful reading of documentation produced code that could not complete a single
+request, and I did not know that until I made one.
 
 ---
 
 ## What I would do next
 
-**Measure before adding anything.** The eval set exists and is unrun. Every idea
-below is speculation until it has numbers next to it.
+**Build fixtures large enough to exercise the budget.** The current set cannot:
+no fixture produced more than five findings, so the feature this project is
+built around went unmeasured. That is the first gap to close.
+
+**Reduce the false positives that come from missing context.** The weaker
+model's spurious comments were nearly all confident claims about symbols defined
+outside the diff. Sending a little surrounding context — the enclosing function,
+or the file's imports — might remove most of them for a small token cost. That
+is a measurable question now.
 
 **Look at whether confidence is calibrated at all.** I use it as a tie-breaker
 within a severity, which is defensible without calibration. If it turned out to

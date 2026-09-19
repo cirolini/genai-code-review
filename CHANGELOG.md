@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Gemini requests failed entirely.** The client was garbage collected as soon
+  as `.models` was resolved, closing the transport before the request went out.
+- **Structured output was rejected by both OpenAI and Gemini.** Gemini returns
+  400 on the `additionalProperties` that OpenAI's strict mode requires, and
+  strict mode forbids optional properties — `required` must name every key.
+  The canonical schema is now provider-neutral and each adapter transforms it.
+
 ### Changed (breaking)
 
 - **`mode` now defaults to `review`** instead of `files`. A workflow that never

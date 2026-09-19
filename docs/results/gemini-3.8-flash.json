@@ -1,0 +1,201 @@
+{
+  "label": "gemini/gemini-3.8-flash",
+  "precision": 1.0,
+  "recall": 0.9333333333333333,
+  "f1": 0.9655172413793104,
+  "noise_rate": 0.0,
+  "cost_per_pr": 0.0009,
+  "mean_latency": 4.95,
+  "errors": 0,
+  "cases": [
+    {
+      "name": "clean_constant_extract",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "clean_docstring",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "clean_import_sort",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "clean_rename",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "clean_test_added",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "clean_typing",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "command_injection",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "integer_division",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "leaked_secret",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "missing_null_check",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "missing_test",
+      "clean": false,
+      "found": 0,
+      "missed": 1,
+      "spurious": 0,
+      "posted": 0,
+      "error": null
+    },
+    {
+      "name": "n_plus_one",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "off_by_one",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "path_traversal",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "race_condition",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "resource_leak",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "sql_injection",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "swallowed_exception",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "timezone_bug",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "unbounded_query",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    },
+    {
+      "name": "weak_hash",
+      "clean": false,
+      "found": 1,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 1,
+      "error": null
+    }
+  ]
+}
