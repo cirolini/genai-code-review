@@ -75,9 +75,16 @@ def review_case(case, providers, max_comments, min_severity, min_confidence):
     )
 
 
-def run(cases, providers, *, max_comments, min_severity, min_confidence, label) -> Scores:
+def run(
+    cases, providers, *, max_comments, min_severity, min_confidence, label, delay=0.0
+) -> Scores:
     scores = Scores()
     for index, case in enumerate(cases, start=1):
+        if delay and index > 1:
+            # Free tiers rate limit hard enough to bias a whole run: the cases
+            # that error are not a random sample, so the numbers stop meaning
+            # anything. Pacing is cheaper than discarding the run.
+            time.sleep(delay)
         print(f"  [{index}/{len(cases)}] {case.name} ... ", end="", flush=True)
         started = time.monotonic()
         try:
@@ -115,6 +122,12 @@ def main(argv=None):
     parser.add_argument("--out", default=None, help="Write the Markdown report here")
     parser.add_argument("--json-out", default=None, help="Write raw scores here")
     parser.add_argument("--dry-run", action="store_true", help="List what would run, send nothing")
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.0,
+        help="Seconds to wait between cases. Use on rate-limited free tiers.",
+    )
     args = parser.parse_args(argv)
 
     only = set(args.only.split(",")) if args.only else None
@@ -154,6 +167,7 @@ def main(argv=None):
         min_severity=args.min_severity,
         min_confidence=args.min_confidence,
         label=label,
+        delay=args.delay,
     )
 
     rows = [(f"{label} (budget {args.max_comments})", scores)]
