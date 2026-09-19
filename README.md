@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: cirolini/genai-code-review@v3
         with:
-          api_key: ${{ secrets.OPENAI_API_KEY }}
+          api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.number }}
 ```
@@ -85,14 +85,22 @@ claim. See [`docs/results/`](docs/results/) for the harness and
 
 | `provider` | Default model | Key read from |
 |---|---|---|
-| `openai` (default) | `gpt-5.6-luna` | `api_key`, else `OPENAI_API_KEY` |
+| `gemini` (default) | `gemini-3.8-flash` | `api_key`, else `GEMINI_API_KEY` |
+| `openai` | `gpt-5.6-luna` | `api_key`, else `OPENAI_API_KEY` |
 | `anthropic` | `claude-sonnet-5` | `api_key`, else `ANTHROPIC_API_KEY` |
-| `gemini` | `gemini-3.8-flash` | `api_key`, else `GEMINI_API_KEY` |
 | `openai-compatible` | none — `model` is required | `api_key`, optional |
 
 Defaults are cost-conscious rather than each vendor's strongest model, because
 this runs on every push to every pull request and the bill is yours. Set `model`
 to pick a different one.
+
+`gemini` is the default because it is the configuration with measured numbers
+behind it: 100% precision and 0% noise on the eval set, at $0.0009 per pull
+request. See [`docs/results/`](docs/results/).
+
+A workflow that passes the deprecated `openai_api_key` and does not set
+`provider` stays on OpenAI, so moving the default cannot send an OpenAI key to
+Google.
 
 ```yaml
 - uses: cirolini/genai-code-review@v3
@@ -134,7 +142,7 @@ secret.
 | `github_token` | — | **Required.** Usually `${{ secrets.GITHUB_TOKEN }}` |
 | `github_pr_id` | — | **Required.** Usually `${{ github.event.number }}` |
 | `api_key` | — | Key for the chosen provider |
-| `provider` | `openai` | `openai`, `anthropic`, `gemini`, `openai-compatible` |
+| `provider` | `gemini` | `gemini`, `openai`, `anthropic`, `openai-compatible` |
 | `model` | per provider | Model ID |
 | `base_url` | — | Required for `openai-compatible` |
 | `mode` | `review` | `review` posts inline comments; `files`/`patch` are v2 behaviour |

@@ -8,8 +8,8 @@
 # secret; a key in a file here is a key that gets committed by accident.
 
 # --- which model reviews the code ---------------------------------------
-provider: openai            # openai | anthropic | gemini | openai-compatible
-# model: gpt-5.6-luna       # defaults to a cost-conscious model per provider
+provider: gemini            # gemini | openai | anthropic | openai-compatible
+# model: gemini-3.8-flash   # defaults to a cost-conscious model per provider
 # base_url: http://localhost:11434/v1   # for openai-compatible only
 
 # --- how the review is posted -------------------------------------------

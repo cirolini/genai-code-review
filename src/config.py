@@ -41,7 +41,14 @@ API_KEY_ENV_VARS = {
     OPENAI_COMPATIBLE: "OPENAI_API_KEY",
 }
 
-DEFAULT_PROVIDER = OPENAI
+# Gemini is the default because it is the provider this project has actually
+# verified end to end: 21/21 eval cases, 100% precision, 0% noise, under a tenth
+# of a cent per pull request. See docs/results/.
+#
+# A v2 workflow that passes `openai_api_key` and no `provider` still gets
+# OpenAI — see _resolve_provider in main.py. Sending an OpenAI key to Gemini
+# because a default moved would be a silent break, not an upgrade.
+DEFAULT_PROVIDER = GEMINI
 
 DEFAULT_TEMPERATURE = 0.5
 DEFAULT_MAX_TOKENS = 2048

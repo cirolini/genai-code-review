@@ -8,7 +8,7 @@ the model for a review and posts the result as a comment.
 import logging
 
 from clients.github_client import GithubClient
-from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE
+from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE, OPENAI
 from panel import parse_panel
 from paths import parse_ignore_paths
 from providers import ProviderError, build_provider
@@ -134,7 +134,7 @@ def get_env_vars():
         "MODE": setting("MODE", "mode", "review"),
         "LANGUAGE": setting("LANGUAGE", "language", "en"),
         "CUSTOM_PROMPT": setting("CUSTOM_PROMPT", "custom_prompt"),
-        "PROVIDER": setting("PROVIDER", "provider", DEFAULT_PROVIDER),
+        "PROVIDER": _resolve_provider(setting("PROVIDER", "provider", None)),
         "BASE_URL": setting("BASE_URL", "base_url") or None,
         "MIN_SEVERITY": str(setting("MIN_SEVERITY", "min_severity", "nit")).strip().lower(),
         "INCREMENTAL": _as_bool(setting("INCREMENTAL", "incremental", True), True),
@@ -185,6 +185,27 @@ def get_env_vars():
     if env["MODEL"]:
         logger.info("Model: %s", env["MODEL"])
     return env
+
+
+def _resolve_provider(explicit):
+    """
+    Choose the provider, keeping v2 workflows on OpenAI.
+
+    v3 defaults to Gemini, the provider with measured results behind it. But a
+    workflow written for v2 passes `openai_api_key` and no `provider` at all,
+    and moving the default would send an OpenAI key to Google and fail. So the
+    presence of the v2-only input is read as the statement of intent it is.
+    """
+    if explicit:
+        return str(explicit).strip().lower()
+
+    uses_v2_alias = get_env_variable("OPENAI_API_KEY", required=False)
+    uses_v3_key = get_env_variable("API_KEY", required=False)
+    if uses_v2_alias and not uses_v3_key:
+        logger.info("`openai_api_key` is set and `provider` is not; using openai.")
+        return OPENAI
+
+    return DEFAULT_PROVIDER
 
 
 def _as_panel(value):

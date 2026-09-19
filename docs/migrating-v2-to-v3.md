@@ -5,6 +5,16 @@
 
 ---
 
+## What does not change for you
+
+v3 defaults to the `gemini` provider, but **a workflow that passes
+`openai_api_key` and does not set `provider` stays on OpenAI.** The presence of
+that v2-only input is read as the statement of intent it is, so moving the
+default cannot silently send your OpenAI key to Google.
+
+If you switch to the v3 `api_key` input without also setting `provider`, you
+will get Gemini. Set `provider: openai` explicitly if that is not what you want.
+
 ## The one breaking change: `mode` now defaults to `review`
 
 In v2 the default was `files`, which produced a single long comment. In v3 the
@@ -66,7 +76,7 @@ non-OpenAI provider.
 | `openai_model` | `model` | |
 | `openai_temperature` | `temperature` | |
 | `openai_max_tokens` | `max_tokens` | |
-| — | `provider` | `openai`, `anthropic`, `gemini`, `openai-compatible` |
+| — | `provider` | `gemini` (default), `openai`, `anthropic`, `openai-compatible` |
 | — | `base_url` | For `openai-compatible` servers |
 
 If both are set, the v3 input wins.

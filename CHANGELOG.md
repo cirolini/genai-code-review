@@ -13,6 +13,11 @@
 
 ### Changed (breaking)
 
+- **The default provider is now `gemini`**, the configuration with measured
+  results behind it. A workflow that passes the deprecated `openai_api_key` and
+  does not set `provider` stays on OpenAI, so an existing key is never sent to
+  a different vendor by a moving default.
+
 - **`mode` now defaults to `review`** instead of `files`. A workflow that never
   set `mode` gets inline comments on the diff instead of one long summary
   comment. Workflows that set `mode` explicitly are unaffected, and the `v2`
