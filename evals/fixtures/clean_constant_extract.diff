@@ -1,0 +1,6 @@
+diff --git a/net/client.py b/net/client.py
+--- a/net/client.py
++++ b/net/client.py
+@@ -6,1 +6,1 @@
+-    resp = session.get(url, timeout=30)
++    resp = session.get(url, timeout=DEFAULT_TIMEOUT)

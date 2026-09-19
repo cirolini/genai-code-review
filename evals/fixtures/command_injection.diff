@@ -1,0 +1,6 @@
+diff --git a/tools/convert.py b/tools/convert.py
+--- a/tools/convert.py
++++ b/tools/convert.py
+@@ -15,1 +15,1 @@
+-    subprocess.run(["convert", src, dst], check=True)
++    subprocess.run(f"convert {src} {dst}", shell=True, check=True)

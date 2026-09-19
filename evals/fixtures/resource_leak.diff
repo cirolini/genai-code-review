@@ -1,0 +1,8 @@
+diff --git a/etl/load.py b/etl/load.py
+--- a/etl/load.py
++++ b/etl/load.py
+@@ -18,2 +18,2 @@
+-    with open(path) as fh:
+-        rows = fh.readlines()
++    fh = open(path)
++    rows = fh.readlines()

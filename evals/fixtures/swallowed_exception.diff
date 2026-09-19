@@ -1,0 +1,9 @@
+diff --git a/sync/push.py b/sync/push.py
+--- a/sync/push.py
++++ b/sync/push.py
+@@ -40,3 +40,2 @@
+-    except RequestError as exc:
+-        logger.error("push failed: %s", exc)
+-        raise
++    except Exception:
++        pass

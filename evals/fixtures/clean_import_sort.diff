@@ -1,0 +1,8 @@
+diff --git a/app/main.py b/app/main.py
+--- a/app/main.py
++++ b/app/main.py
+@@ -1,2 +1,2 @@
+-import sys
+-import os
++import os
++import sys

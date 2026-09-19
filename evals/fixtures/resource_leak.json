@@ -1,0 +1,15 @@
+{
+  "name": "resource_leak",
+  "note": "Context manager replaced with an unclosed file handle.",
+  "expected": [
+    {
+      "file": "etl/load.py",
+      "line": 18,
+      "categories": [
+        "bug",
+        "maintainability"
+      ],
+      "min_severity": "minor"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "swallowed_exception",
+  "note": "Specific handler replaced with a bare except that silently swallows failures.",
+  "expected": [
+    {
+      "file": "sync/push.py",
+      "line": 40,
+      "categories": [
+        "bug",
+        "maintainability"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

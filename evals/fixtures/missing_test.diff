@@ -1,0 +1,12 @@
+diff --git a/billing/discount.py b/billing/discount.py
+--- a/billing/discount.py
++++ b/billing/discount.py
+@@ -10,0 +11,8 @@
++def apply_discount(total, percent):
++    if percent < 0 or percent > 100:
++        raise ValueError("percent out of range")
++    return round(total * (1 - percent / 100), 2)
++
++
++def is_eligible(customer):
++    return customer.tier in ("gold", "platinum")

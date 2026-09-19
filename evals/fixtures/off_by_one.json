@@ -1,0 +1,14 @@
+{
+  "name": "off_by_one",
+  "note": "Loop now reads one past the end of the list.",
+  "expected": [
+    {
+      "file": "lib/window.py",
+      "line": 21,
+      "categories": [
+        "bug"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "clean_constant_extract",
+  "note": "Magic number replaced with an existing named constant.",
+  "expected": []
+}

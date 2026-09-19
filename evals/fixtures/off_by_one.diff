@@ -1,0 +1,7 @@
+diff --git a/lib/window.py b/lib/window.py
+--- a/lib/window.py
++++ b/lib/window.py
+@@ -20,1 +20,2 @@
+-    for i in range(len(items) - 1):
++    for i in range(len(items)):
++        window = items[i] + items[i + 1]

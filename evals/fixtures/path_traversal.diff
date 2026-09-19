@@ -1,0 +1,7 @@
+diff --git a/web/files.py b/web/files.py
+--- a/web/files.py
++++ b/web/files.py
+@@ -22,2 +22,1 @@
+-    safe = os.path.basename(name)
+-    return open(os.path.join(UPLOAD_DIR, safe)).read()
++    return open(os.path.join(UPLOAD_DIR, name)).read()

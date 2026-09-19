@@ -1,0 +1,7 @@
+diff --git a/lib/parse.py b/lib/parse.py
+--- a/lib/parse.py
++++ b/lib/parse.py
+@@ -3,0 +4,3 @@
++    """Return the parsed rows, skipping blank lines."""
++
++

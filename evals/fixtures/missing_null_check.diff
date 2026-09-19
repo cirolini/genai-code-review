@@ -1,0 +1,10 @@
+diff --git a/api/profile.py b/api/profile.py
+--- a/api/profile.py
++++ b/api/profile.py
+@@ -8,4 +8,2 @@
+-    user = find_user(uid)
+-    if user is None:
+-        return None
+-    return user.email
++    user = find_user(uid)
++    return user.email

@@ -1,0 +1,5 @@
+{
+  "name": "clean_rename",
+  "note": "Pure rename with no behaviour change.",
+  "expected": []
+}

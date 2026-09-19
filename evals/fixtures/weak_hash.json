@@ -1,0 +1,14 @@
+{
+  "name": "weak_hash",
+  "note": "Password hashing downgraded from bcrypt to MD5.",
+  "expected": [
+    {
+      "file": "auth/password.py",
+      "line": 11,
+      "categories": [
+        "security"
+      ],
+      "min_severity": "blocker"
+    }
+  ]
+}

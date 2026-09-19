@@ -1,0 +1,14 @@
+{
+  "name": "missing_test",
+  "note": "New money-handling logic added with no accompanying test.",
+  "expected": [
+    {
+      "file": "billing/discount.py",
+      "line": 11,
+      "categories": [
+        "test"
+      ],
+      "min_severity": "minor"
+    }
+  ]
+}
