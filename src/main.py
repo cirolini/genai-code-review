@@ -8,7 +8,8 @@ the model for a review and posts the result as a comment.
 import logging
 
 from clients.github_client import GithubClient
-from clients.openai_client import OpenAIClient
+from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE
+from providers import ProviderError, build_provider
 from utils.helpers import get_env_variable
 
 # Configured once here, in the entry point. Library modules only take a logger.
@@ -18,87 +19,171 @@ logger = logging.getLogger(__name__)
 
 def main():
     """
-    Main function to handle the code review process based on the mode specified.
+    Run a review for the configured pull request.
+
+    Any provider failure is reported in the pull request itself and then
+    re-raised, so the check fails loudly instead of leaving a green tick on a
+    review that never happened.
     """
     try:
         env_vars = get_env_vars()
     except ValueError as e:
         logger.error("Environment variable error: %s", e)
-        return
+        raise
 
-    github_client = GithubClient(env_vars['GITHUB_TOKEN'])
-    openai_client = OpenAIClient(env_vars['OPENAI_MODEL'],
-                                 env_vars['OPENAI_TEMPERATURE'],
-                                 env_vars['OPENAI_MAX_TOKENS'])
+    github_client = GithubClient(env_vars["GITHUB_TOKEN"])
+    pr_id = env_vars["GITHUB_PR_ID"]
 
-    language = env_vars.get('LANGUAGE', 'en')
-    custom_prompt = env_vars.get('CUSTOM_PROMPT')
+    try:
+        provider = build_provider(
+            env_vars["PROVIDER"],
+            model=env_vars["MODEL"],
+            api_key=env_vars["API_KEY"],
+            base_url=env_vars["BASE_URL"],
+            temperature=env_vars["TEMPERATURE"],
+            max_tokens=env_vars["MAX_TOKENS"],
+        )
+    except ProviderError as e:
+        report_provider_failure(github_client, pr_id, e)
+        raise
 
-    if env_vars['MODE'] == "files":
-        process_files(github_client,
-                      openai_client,
-                      env_vars['GITHUB_PR_ID'],
-                      language,
-                      custom_prompt)
-    elif env_vars['MODE'] == "patch":
-        process_patch(github_client,
-                      openai_client,
-                      env_vars['GITHUB_PR_ID'],
-                      language,
-                      custom_prompt)
-    else:
-        logger.error("Invalid mode. Choose either 'files' or 'patch'.")
-        raise ValueError("Invalid mode. Choose either 'files' or 'patch'.")
+    language = env_vars.get("LANGUAGE") or "en"
+    custom_prompt = env_vars.get("CUSTOM_PROMPT")
+    mode = env_vars["MODE"]
+
+    try:
+        if mode == "files":
+            process_files(github_client, provider, pr_id, language, custom_prompt)
+        elif mode == "patch":
+            process_patch(github_client, provider, pr_id, language, custom_prompt)
+        else:
+            logger.error("Invalid mode. Choose either 'files' or 'patch'.")
+            raise ValueError("Invalid mode. Choose either 'files' or 'patch'.")
+    except ProviderError as e:
+        report_provider_failure(github_client, pr_id, e)
+        raise
+
+
+def report_provider_failure(github_client, pr_id, error):
+    """
+    Tell the reader what went wrong, in the pull request.
+
+    A silent failure is the worst outcome for a review bot: the check goes red
+    somewhere in a log nobody opens, and the pull request looks unreviewed in
+    exactly the same way as one the bot approved.
+    """
+    body = (
+        "## Code review did not run\n\n"
+        f"The `{error.provider}` provider failed and no review was produced: "
+        f"{error}\n\n"
+        f"<sub>model: `{error.model}`</sub>"
+    )
+    try:
+        github_client.post_comment(pr_id, body)
+    except Exception:  # the original error is what matters, not this one
+        logger.exception("Could not post the failure comment; original error follows")
+
 
 def get_env_vars():
     """
-    Retrieve required and optional environment variables and ensure they are not empty.
-    Convert specific variables to their appropriate types.
+    Read configuration from the environment.
+
+    v3 introduces `provider`, `model`, `api_key` and `base_url`. The v2 inputs
+    (`openai_model`, `openai_api_key`, `openai_temperature`, `openai_max_tokens`)
+    still work and are used whenever the v3 equivalent is unset, so a workflow
+    written against v2 keeps running unchanged.
 
     Returns:
-        dict: A dictionary of environment variables.
+        dict: the resolved configuration.
 
     Raises:
-        ValueError: If any required environment variable is missing, empty, or has an invalid type.
+        ValueError: if a required variable is missing or cannot be converted.
     """
-    variables = {
-        'OPENAI_API_KEY': (str, True),
-        'GITHUB_TOKEN': (str, True),
-        'GITHUB_PR_ID': (int, True),
-        'OPENAI_MODEL': (str, True),
-        'OPENAI_TEMPERATURE': (float, True),
-        'OPENAI_MAX_TOKENS': (int, True),
-        'MODE': (str, True),
-        'LANGUAGE': (str, True),
-        'CUSTOM_PROMPT': (str, False)
+    env = {
+        "GITHUB_TOKEN": _required("GITHUB_TOKEN"),
+        "GITHUB_PR_ID": _as_int("GITHUB_PR_ID", _required("GITHUB_PR_ID")),
+        "MODE": get_env_variable("MODE", required=False) or "files",
+        "LANGUAGE": get_env_variable("LANGUAGE", required=False) or "en",
+        "CUSTOM_PROMPT": get_env_variable("CUSTOM_PROMPT", required=False),
+        "PROVIDER": (
+            get_env_variable("PROVIDER", required=False) or DEFAULT_PROVIDER
+        ),
+        "BASE_URL": get_env_variable("BASE_URL", required=False) or None,
     }
 
-    env_vars = {}
-    for var, (var_type, required) in variables.items():
-        value = get_env_variable(var, required)
-        if value:
-            try:
-                env_vars[var] = var_type(value)
-                logger.info(
-                    "%s (%s) retrieved and converted successfully.",
-                    var,
-                    var_type.__name__
-                )
-            except ValueError as e:
-                logger.error("%s must be of type %s. Error: %s", var, var_type.__name__, e)
-                raise ValueError(f"{var} must be of type {var_type.__name__}.") from e
-        else:
-            env_vars[var] = None
+    # v3 input first, v2 alias second.
+    env["MODEL"] = _first(
+        get_env_variable("MODEL", required=False),
+        get_env_variable("OPENAI_MODEL", required=False),
+    )
+    env["API_KEY"] = _first(
+        get_env_variable("API_KEY", required=False),
+        get_env_variable("OPENAI_API_KEY", required=False),
+    )
+    env["TEMPERATURE"] = _as_float(
+        "TEMPERATURE",
+        _first(
+            get_env_variable("TEMPERATURE", required=False),
+            get_env_variable("OPENAI_TEMPERATURE", required=False),
+        ),
+        DEFAULT_TEMPERATURE,
+    )
+    env["MAX_TOKENS"] = _as_int_or(
+        "MAX_TOKENS",
+        _first(
+            get_env_variable("MAX_TOKENS", required=False),
+            get_env_variable("OPENAI_MAX_TOKENS", required=False),
+        ),
+        DEFAULT_MAX_TOKENS,
+    )
 
-    return env_vars
+    if env["MODEL"]:
+        logger.info("Model: %s", env["MODEL"])
+    return env
 
-def process_files(github_client, openai_client, pr_id, language, custom_prompt):
+
+def _first(*values):
+    """The first value that is set and non-empty."""
+    for value in values:
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _required(name):
+    value = get_env_variable(name, required=True)
+    return value
+
+
+def _as_int(name, value):
+    try:
+        return int(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"{name} must be an integer, got {value!r}.") from e
+
+
+def _as_int_or(name, value, default):
+    if value in (None, ""):
+        return default
+    return _as_int(name, value)
+
+
+def _as_float(name, value, default):
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"{name} must be a number, got {value!r}.") from e
+
+
+def process_files(github_client, provider, pr_id, language, custom_prompt):
     """
     Process the files changed in the last commit of the pull request.
 
     Args:
         github_client (GithubClient): The GitHub client instance.
-        openai_client (OpenAIClient): The OpenAI client instance.
+        provider (OpenAIClient): The OpenAI client instance.
         pr_id (int): The pull request ID.
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
@@ -112,15 +197,15 @@ def process_files(github_client, openai_client, pr_id, language, custom_prompt):
         return
 
     last_commit = commits[-1]
-    analyze_commit_files(github_client, openai_client, pr_id, last_commit, language, custom_prompt)
+    analyze_commit_files(github_client, provider, pr_id, last_commit, language, custom_prompt)
 
-def process_patch(github_client, openai_client, pr_id, language, custom_prompt):
+def process_patch(github_client, provider, pr_id, language, custom_prompt):
     """
     Process the patch content of a pull request.
 
     Args:
         github_client (GithubClient): The GitHub client instance.
-        openai_client (OpenAIClient): The OpenAI client instance.
+        provider (OpenAIClient): The OpenAI client instance.
         pr_id (int): The pull request ID.
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
@@ -131,15 +216,15 @@ def process_patch(github_client, openai_client, pr_id, language, custom_prompt):
         logger.info("Patch file does not contain any changes.")
         github_client.post_comment(pr_id, "Patch file does not contain any changes")
         return
-    analyze_patch(github_client, openai_client, pr_id, patch_content, language, custom_prompt)
+    analyze_patch(github_client, provider, pr_id, patch_content, language, custom_prompt)
 
-def analyze_commit_files(github_client, openai_client, pr_id, commit, language, custom_prompt):
+def analyze_commit_files(github_client, provider, pr_id, commit, language, custom_prompt):
     """
     Analyze all files in a given commit together and post a single comment.
 
     Args:
         github_client (GithubClient): The GitHub client instance.
-        openai_client (OpenAIClient): The OpenAI client instance.
+        provider (OpenAIClient): The OpenAI client instance.
         pr_id (int): The pull request ID.
         commit (Commit): The commit object.
         language (str): The language for the review.
@@ -154,18 +239,16 @@ def analyze_commit_files(github_client, openai_client, pr_id, commit, language, 
         content = github_client.get_file_content(commit.sha, file.filename)
         combined_content += f"\n### File: {file.filename}\n```{content}```\n"
 
-    review = openai_client.generate_response(create_review_prompt(combined_content,
-                                                                  language,
-                                                                  custom_prompt))
-    github_client.post_comment(pr_id, f"ChatGPT's code review:\n {review}")
+    result = provider.review(create_review_prompt(combined_content, language, custom_prompt))
+    github_client.post_comment(pr_id, format_review_comment(result))
 
-def analyze_patch(github_client, openai_client, pr_id, patch_content, language, custom_prompt):
+def analyze_patch(github_client, provider, pr_id, patch_content, language, custom_prompt):
     """
     Analyze the patch content of a pull request and post a single comment.
 
     Args:
         github_client (GithubClient): The GitHub client instance.
-        openai_client (OpenAIClient): The OpenAI client instance.
+        provider (OpenAIClient): The OpenAI client instance.
         pr_id (int): The pull request ID.
         patch_content (str): The patch content.
         language (str): The language for the review.
@@ -188,8 +271,26 @@ def analyze_patch(github_client, openai_client, pr_id, patch_content, language, 
                 )
 
     review_prompt = create_review_prompt(combined_diff, language, custom_prompt)
-    summary = openai_client.generate_response(review_prompt)
-    github_client.post_comment(pr_id, f"ChatGPT's code review:\n {summary}")
+    result = provider.review(review_prompt)
+    github_client.post_comment(pr_id, format_review_comment(result))
+
+def format_review_comment(result):
+    """
+    Render a review as a pull request comment.
+
+    The footer names the provider, model and token cost. v2 hardcoded
+    "ChatGPT's code review", which is wrong as soon as the reviewer is Claude
+    or Gemini — and the reader of a review deserves to know which model wrote
+    it and what it cost.
+    """
+    footer = f"<sub>{result.provider} · `{result.model}`"
+    if result.usage.total_tokens is not None:
+        footer += (
+            f" · {result.usage.input_tokens} in / {result.usage.output_tokens} out tokens"
+        )
+    footer += f" · {result.latency_s:.1f}s</sub>"
+    return f"## Code review\n\n{result.text}\n\n{footer}"
+
 
 def create_review_prompt(content, language, custom_prompt=None):
     """

@@ -63,15 +63,80 @@ In the above workflow, the `pull_request` event triggers the workflow whenever a
 
 `openai_api_key` and `github_token` are passed from the secrets context, and `github_pr_id` from the `github.event.number` context. The remaining inputs — `openai_model`, `openai_temperature` and `openai_max_tokens` — are optional and have defaults.
 
+## Providers
+
+v3 can send the review to OpenAI, Anthropic, Google Gemini, or any server that
+speaks the OpenAI chat completions API. Pick one with `provider`:
+
+```yaml
+- uses: cirolini/genai-code-review@v3
+  with:
+    provider: anthropic
+    api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    github_pr_id: ${{ github.event.number }}
+```
+
+| `provider` | Default model | Key from |
+|---|---|---|
+| `openai` (default) | `gpt-5.6-luna` | `api_key`, else `OPENAI_API_KEY` |
+| `anthropic` | `claude-sonnet-5` | `api_key`, else `ANTHROPIC_API_KEY` |
+| `gemini` | `gemini-3.8-flash` | `api_key`, else `GEMINI_API_KEY` |
+| `openai-compatible` | none — `model` is required | `api_key`, optional |
+
+Defaults are cost-conscious rather than each vendor's strongest model, because
+this runs on every push to every pull request and the bill is yours. Set `model`
+to choose a different one.
+
+### Self-hosted and third-party endpoints
+
+`openai-compatible` covers Ollama, vLLM, Azure OpenAI, OpenRouter, Together and
+anything else exposing the same API. It needs `base_url`, and `api_key` is
+optional so a local server with no auth works:
+
+```yaml
+    provider: openai-compatible
+    base_url: http://localhost:11434/v1
+    model: llama3
+```
+
+### Failures are never silent
+
+If the provider rejects the key, does not know the model, or stays unavailable
+through the retries, the action posts a comment saying so and fails the check.
+A review that did not happen must not look like a review that found nothing.
+
 ## Configuration Parameters
 
-### `openai_model`
-- **Description**: The OpenAI model to use for generating responses.
-- **Default**: `"gpt-5.6-luna"`
-- **Options**: Any chat-capable OpenAI model ID, for example `gpt-5.6-terra`.
+### `provider`
+- **Description**: Which LLM provider to use.
+- **Default**: `openai`
+- **Options**: `openai`, `anthropic`, `gemini`, `openai-compatible`.
 
-> Earlier releases documented this input as `openai_engine`. That name was never
-> read by the action; `openai_model` is and always was the correct one.
+### `model`
+- **Description**: Model ID. See the table above for per-provider defaults.
+- **Default**: the default for the chosen provider.
+
+### `api_key`
+- **Description**: API key for the chosen provider.
+- **Default**: falls back to `openai_api_key`, then to the provider's own
+  environment variable.
+
+### `base_url`
+- **Description**: Address of an OpenAI-compatible server. Required when
+  `provider` is `openai-compatible`.
+- **Default**: `""`
+
+### `temperature` / `max_tokens`
+- **Description**: Sampling temperature and response length cap.
+- **Default**: `0.5` and `2048`. Fall back to `openai_temperature` and
+  `openai_max_tokens`.
+
+### Deprecated inputs
+`openai_api_key`, `openai_model`, `openai_temperature` and `openai_max_tokens`
+still work and are used whenever their v3 equivalent is unset, so a v2 workflow
+runs on v3 unchanged. Earlier releases also documented an `openai_engine` input
+that the action never read.
 
 ### `openai_temperature`
 - **Description**: Controls the creativity of the AI's responses. Higher values make the output more random, while lower values make it more focused and deterministic.

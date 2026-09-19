@@ -1,9 +1,33 @@
 name: "ChatGPT GitHub Actions"
 description: "This GitHub Action automates code review for pull requests using OpenAI's GPT models. By integrating this action into your CI/CD pipeline, it provides detailed, AI-generated reviews of your code directly within the PR comments. This tool helps maintain code quality, ensures adherence to best practices, and highlights potential improvements and bugs."
 inputs:
-  openai_api_key:  # id of input
-    description: 'OpenAI API Key'
-    required: true
+  provider:
+    description: "LLM provider: openai, anthropic, gemini, or openai-compatible."
+    required: false
+    default: "openai"
+  model:
+    description: "Model ID. Defaults to a cost-conscious model for the chosen provider."
+    required: false
+    default: ""
+  api_key:
+    description: "API key for the chosen provider. Falls back to openai_api_key."
+    required: false
+    default: ""
+  base_url:
+    description: "Base URL for an OpenAI-compatible server (Ollama, vLLM, Azure OpenAI, OpenRouter). Required when provider is openai-compatible."
+    required: false
+    default: ""
+  temperature:
+    description: "Sampling temperature. Falls back to openai_temperature."
+    required: false
+    default: ""
+  max_tokens:
+    description: "Maximum tokens in the response. Falls back to openai_max_tokens."
+    required: false
+    default: ""
+  openai_api_key:  # deprecated alias for api_key, kept for v2 workflows
+    description: 'OpenAI API Key. Deprecated: use api_key.'
+    required: false
     default: ''
   github_token:  # id of input
     description: 'Github API Key'
@@ -14,17 +38,17 @@ inputs:
     required: true
     default: ''
   openai_model:
-    description: "The OpenAI model to use for generating responses. Examples: 'gpt-5.6-luna', 'gpt-5.6-terra'"
+    description: "Deprecated: use model."
     required: false
-    default: "gpt-5.6-luna"
+    default: ""
   openai_temperature:
-    description: "The temperature for OpenAI responses. Controls the creativity of the responses. Higher values (e.g., 0.9) make output more random, while lower values (e.g., 0.1) make it more focused and deterministic."
+    description: "Deprecated: use temperature."
     required: false
-    default: "0.5"
+    default: ""
   openai_max_tokens:
-    description: "The maximum number of tokens to generate in the OpenAI response. Example: 1000"
+    description: "Deprecated: use max_tokens."
     required: false
-    default: "2048"
+    default: ""
   mode:
     description: "The mode of operation for the action. Options: 'files' to review file changes, 'patch' to review the patch changes."
     required: false
@@ -41,6 +65,12 @@ runs:
   using: "docker"
   image: "Dockerfile"
   env:
+    PROVIDER: ${{ inputs.provider }}
+    MODEL: ${{ inputs.model }}
+    API_KEY: ${{ inputs.api_key }}
+    BASE_URL: ${{ inputs.base_url }}
+    TEMPERATURE: ${{ inputs.temperature }}
+    MAX_TOKENS: ${{ inputs.max_tokens }}
     OPENAI_API_KEY: ${{ inputs.openai_api_key }}
     GITHUB_TOKEN: ${{ inputs.github_token }}
     GITHUB_PR_ID: ${{ inputs.github_pr_id }}
