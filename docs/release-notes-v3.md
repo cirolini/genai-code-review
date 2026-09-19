@@ -21,18 +21,27 @@ The existing listing is named "ChatGPT GitHub Actions", which no longer
 describes the action — it supports four providers. Updating the listing is a
 separate, explicit step from tagging and has not been done.
 
-### Not verified against a live API
+### Live verification: two of four providers
 
-**This is the blocker.** No part of v3 has run against a real provider. The
-repository's `OPENAI_API_KEY` secret dates from 2024-05-21 and is rejected with
-a 401, so every review CI attempted failed before reaching a model.
+The pipeline has now run end to end against real models, and
+[`docs/results/`](results/) has measured numbers.
 
-The four provider adapters, the structured-output parameters and the model IDs
-are all checked against the providers' own documentation and against the
-installed SDKs — but no response has ever come back, and `docs/results/` is
-empty for the same reason.
+| Provider | Status |
+|---|---|
+| `gemini` | **Verified.** 21/21 eval cases, 100% precision, 93% recall, 0% noise |
+| `openai-compatible` | **Verified** against Groq, 21/21 cases |
+| `openai` | **Not verified.** Same adapter class as `openai-compatible`, so the code path is covered, but `gpt-5.6-luna` itself has never been called |
+| `anthropic` | **Not verified.** The adapter authenticates and reaches Anthropic's billing layer, but the test account has no credit, so no response has come back |
 
-**A release should not go out before at least one end-to-end run succeeds.**
+Running it caught three real bugs that 213 passing tests had not: the Gemini
+client being garbage collected mid-call, Gemini rejecting the
+`additionalProperties` that OpenAI strict mode requires, and strict mode
+forbidding the optional `suggestion` property. All three are fixed, with tests.
+
+**Remaining risk before tagging:** `gpt-5.6-luna` is the default model and has
+never been called. The adapter around it is exercised, and the model ID is from
+OpenAI's own documentation, but a working `OPENAI_API_KEY` and one green run
+would close the last gap.
 
 ---
 

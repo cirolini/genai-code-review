@@ -334,6 +334,9 @@ class RunLogTests(unittest.TestCase):
         # 10k in at $0.20/M + 2k out at $1.20/M
         self.assertAlmostEqual(estimate_cost("gpt-5.6-luna", 10_000, 2_000), 0.0044)
 
+    def test_prices_a_gemini_model(self):
+        self.assertAlmostEqual(estimate_cost("gemini-3.8-flash", 10_000, 2_000), 0.015)
+
     def test_an_unknown_model_yields_no_cost_rather_than_a_wrong_one(self):
         self.assertIsNone(estimate_cost("some-future-model", 1_000, 100))
 

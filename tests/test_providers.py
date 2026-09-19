@@ -7,17 +7,23 @@ adapter has to honour: return the text, report the tokens, and turn a failure
 into a ProviderError with a message a human can act on.
 """
 
+import copy
 import sys
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import config
+from findings import FINDINGS_SCHEMA, SEVERITIES
 from providers import ProviderConfigurationError, ProviderError, build_provider
 from providers.anthropic_provider import AnthropicProvider
 from providers.base import LLMProvider, Usage, _looks_transient
-from providers.gemini_provider import GeminiProvider
-from providers.openai_provider import OpenAICompatibleProvider, OpenAIProvider
+from providers.gemini_provider import GeminiProvider, to_gemini_schema
+from providers.openai_provider import (
+    OpenAICompatibleProvider,
+    OpenAIProvider,
+    to_strict_schema,
+)
 from providers.retry import RetryPolicy
 
 NO_DELAY = RetryPolicy(attempts=3, base_delay=0.0, max_delay=0.0)
@@ -205,6 +211,58 @@ class GeminiAdapterTests(unittest.TestCase):
             with self.assertRaises(ProviderError) as ctx:
                 provider.review("prompt")
         self.assertIn("API key was rejected", str(ctx.exception))
+
+
+class SchemaAdaptationTests(unittest.TestCase):
+    """
+    The providers genuinely disagree about JSON Schema, so the canonical schema
+    stays provider-neutral and each adapter transforms it. Both of these were
+    written after a live request rejected the untransformed schema.
+    """
+
+    def test_strict_mode_requires_every_property_to_be_required(self):
+        """
+        OpenAI strict mode rejects optional properties outright:
+        "`required` is required to be supplied and to be an array including
+        every key in properties".
+        """
+        strict = to_strict_schema(FINDINGS_SCHEMA)
+        item = strict["properties"]["findings"]["items"]
+        self.assertEqual(set(item["required"]), set(item["properties"]))
+        self.assertIn("suggestion", item["required"])
+
+    def test_an_optional_property_becomes_nullable_rather_than_mandatory(self):
+        """Optionality has to be expressed in the type, not by omission."""
+        item = to_strict_schema(FINDINGS_SCHEMA)["properties"]["findings"]["items"]
+        self.assertEqual(item["properties"]["suggestion"]["type"], ["string", "null"])
+        # A genuinely required field keeps its plain type.
+        self.assertEqual(item["properties"]["file"]["type"], "string")
+
+    def test_strict_mode_sets_additional_properties_false(self):
+        strict = to_strict_schema(FINDINGS_SCHEMA)
+        self.assertIs(strict["additionalProperties"], False)
+        self.assertIs(strict["properties"]["findings"]["items"]["additionalProperties"], False)
+
+    def test_gemini_rejects_additional_properties_so_it_is_stripped(self):
+        """Gemini returns 400 INVALID_ARGUMENT on `additionalProperties`."""
+        cleaned = to_gemini_schema(FINDINGS_SCHEMA)
+        self.assertNotIn("additionalProperties", cleaned)
+        self.assertNotIn(
+            "additionalProperties", cleaned["properties"]["findings"]["items"]
+        )
+
+    def test_gemini_schema_keeps_what_the_model_actually_needs(self):
+        item = to_gemini_schema(FINDINGS_SCHEMA)["properties"]["findings"]["items"]
+        self.assertEqual(item["type"], "object")
+        self.assertIn("severity", item["properties"])
+        self.assertEqual(item["properties"]["severity"]["enum"], list(SEVERITIES))
+        self.assertIn("file", item["required"])
+
+    def test_neither_transform_mutates_the_canonical_schema(self):
+        before = copy.deepcopy(FINDINGS_SCHEMA)
+        to_strict_schema(FINDINGS_SCHEMA)
+        to_gemini_schema(FINDINGS_SCHEMA)
+        self.assertEqual(FINDINGS_SCHEMA, before)
 
 
 class RetryBehaviourTests(unittest.TestCase):

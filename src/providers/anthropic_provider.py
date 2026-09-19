@@ -30,7 +30,8 @@ class AnthropicProvider(LLMProvider):
                 "format": {"type": "json_schema", "schema": schema}
             }
 
-        response = self._client().messages.create(
+        client = self._client()
+        response = client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
             system=SYSTEM_PROMPT,

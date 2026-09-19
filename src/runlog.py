@@ -30,6 +30,8 @@ PRICING = {
     "claude-sonnet-5": (2.00, 10.00),
     "claude-opus-5": (5.00, 25.00),
     "claude-haiku-4-5": (1.00, 5.00),
+    # Promotional rate through 2026-12-31; rises to (1.50, 7.50) after.
+    "gemini-3.8-flash": (0.75, 3.75),
 }
 
 

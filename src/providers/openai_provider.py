@@ -16,6 +16,53 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = "You are an expert software engineer reviewing a code change."
 
 
+def to_strict_schema(schema):
+    """
+    Adapt the canonical findings schema to OpenAI's strict mode.
+
+    Strict mode does not allow optional properties: `required` must list every
+    key in `properties`. The way to express "may be absent" is a nullable type,
+    so a property that was optional becomes `["string", "null"]` and joins
+    `required`.
+
+    The canonical schema stays provider-neutral and each adapter transforms it,
+    because the providers genuinely disagree — Gemini rejects the
+    `additionalProperties` that strict mode requires.
+    """
+    if isinstance(schema, list):
+        return [to_strict_schema(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+
+    out = dict(schema)
+
+    if "items" in out:
+        out["items"] = to_strict_schema(out["items"])
+
+    properties = out.get("properties")
+    if isinstance(properties, dict):
+        originally_required = set(out.get("required", []))
+        converted = {}
+        for name, sub in properties.items():
+            sub = to_strict_schema(sub)
+            if name not in originally_required:
+                sub = _nullable(sub)
+            converted[name] = sub
+        out["properties"] = converted
+        out["required"] = list(properties)
+        out["additionalProperties"] = False
+
+    return out
+
+
+def _nullable(schema):
+    kind = schema.get("type")
+    if isinstance(kind, str) and kind != "null":
+        schema = dict(schema)
+        schema["type"] = [kind, "null"]
+    return schema
+
+
 class OpenAIProvider(LLMProvider):
     name = OPENAI
 
@@ -40,10 +87,18 @@ class OpenAIProvider(LLMProvider):
             # schema, which removes most of the repair path's work.
             kwargs["response_format"] = {
                 "type": "json_schema",
-                "json_schema": {"name": "code_review", "schema": schema, "strict": True},
+                "json_schema": {
+                    "name": "code_review",
+                    "schema": to_strict_schema(schema),
+                    "strict": True,
+                },
             }
 
-        response = self._client().chat.completions.create(
+        # Bound to a local for the same reason as the Gemini adapter: a
+        # client that only lives for the duration of one attribute lookup can
+        # be torn down before the request goes out.
+        client = self._client()
+        response = client.chat.completions.create(
             model=self.model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
