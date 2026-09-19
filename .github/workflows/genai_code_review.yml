@@ -1,20 +1,33 @@
+name: GenAI Code Review
+
 on:
   pull_request:
     types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   genai_code_review:
     runs-on: ubuntu-latest
     name: GenAI Code Review
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # No actions/checkout step on purpose.
+      #
+      # This action is a container action that reads the pull request over the
+      # GitHub API, so it never needs the repository on disk. Checking the
+      # repository out here also used to hide a bug: the container runs with
+      # --workdir /github/workspace, so a checkout that happened to contain
+      # src/main.py made the old relative CMD work in this repository while it
+      # failed everywhere else (issue #47). Without the checkout, this job
+      # exercises the same code path an external user gets.
       - name: GenAI Code Review
         uses: cirolini/genai-code-review@v2
         with:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.pull_request.number }}
-          openai_model: "gpt-3.5-turbo"
+          openai_model: "gpt-5.6-luna"
           openai_temperature: 0.5
           openai_max_tokens: 2048

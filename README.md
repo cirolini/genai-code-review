@@ -14,33 +14,41 @@ Before you begin, you need to have the following:
 
 ### Step 1: Create a Secret for your OpenAI API Key
 
-Create a secret for your OpenAI API Key in your Github repository or organization with the name `openai_api_key`. This secret will be used to authenticate with the OpenAI API.
+Create a secret for your OpenAI API Key in your Github repository or organization with the name `OPENAI_API_KEY`. This secret will be used to authenticate with the OpenAI API.
 
-You can do this by going to your repository/organization's settings, navigate to secrets and create a new secret with the name `openai_api_key` and paste your OpenAI API key as the value.
+You can do this by going to your repository/organization's settings, navigate to secrets and create a new secret with the name `OPENAI_API_KEY` and paste your OpenAI API key as the value.
 
 ### Step 2: Adjust Permissions
 
 Then you need to set up your project's permissions so that the Github Actions can write comments on Pull Requests. You can read more about this here: [automatic-token-authentication](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token)
 
-### Step 3: Create a new Github Actions workflow in your repository in `.github/workflows/chatgpt-review.yaml. A sample workflow is given below:
+### Step 3: Create the workflow
 
-```
+Add a new Github Actions workflow at `.github/workflows/genai-code-review.yml`. A sample workflow is given below:
+
+```yaml
 on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   code_review_job:
     runs-on: ubuntu-latest
-    name: ChatGPT Code Review
+    name: GenAI Code Review
     steps:
+      # No actions/checkout step is needed. This action reads the pull request
+      # over the GitHub API and never uses the repository on disk.
       - name: GenAI Code Review
         uses: cirolini/genai-code-review@v2
         with:
-          openai_api_key: ${{ secrets.openai_api_key }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.number }}
-          openai_model: "gpt-3.5-turbo" # optional
+          openai_model: "gpt-5.6-luna" # optional
           openai_temperature: 0.5 # optional
           openai_max_tokens: 2048 # optional
           mode: files # files or patch
@@ -48,16 +56,22 @@ jobs:
           custom_prompt: "" # optional
 ```
 
-In the above workflow, the pull_request event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the ubuntu-latest runner and uses the cirolini/chatgpt-github-actions@v1 action.
+The `permissions` block is required. Without `pull-requests: write` the action
+authenticates correctly but cannot post its comment.
 
-The openai_api_key is passed from the secrets context, and the github_token is also passed from the secrets context. The github_pr_id is passed from the github.event.number context. The other three input parameters, openai_engine, openai_temperature, and openai_max_tokens, are optional and have default values.
+In the above workflow, the `pull_request` event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the `ubuntu-latest` runner.
+
+`openai_api_key` and `github_token` are passed from the secrets context, and `github_pr_id` from the `github.event.number` context. The remaining inputs — `openai_model`, `openai_temperature` and `openai_max_tokens` — are optional and have defaults.
 
 ## Configuration Parameters
 
-### `openai_engine`
+### `openai_model`
 - **Description**: The OpenAI model to use for generating responses.
-- **Default**: `"gpt-3.5-turbo"`
-- **Options**: Models like `gpt-4o`, `gpt-4-turbo`, etc.
+- **Default**: `"gpt-5.6-luna"`
+- **Options**: Any chat-capable OpenAI model ID, for example `gpt-5.6-terra`.
+
+> Earlier releases documented this input as `openai_engine`. That name was never
+> read by the action; `openai_model` is and always was the correct one.
 
 ### `openai_temperature`
 - **Description**: Controls the creativity of the AI's responses. Higher values make the output more random, while lower values make it more focused and deterministic.

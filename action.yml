@@ -14,9 +14,9 @@ inputs:
     required: true
     default: ''
   openai_model:
-    description: "The OpenAI model to use for generating responses. Examples: 'gpt-3.5-turbo', 'gpt-4'"
+    description: "The OpenAI model to use for generating responses. Examples: 'gpt-5.6-luna', 'gpt-5.6-terra'"
     required: false
-    default: "gpt-3.5-turbo"
+    default: "gpt-5.6-luna"
   openai_temperature:
     description: "The temperature for OpenAI responses. Controls the creativity of the responses. Higher values (e.g., 0.9) make output more random, while lower values (e.g., 0.1) make it more focused and deterministic."
     required: false

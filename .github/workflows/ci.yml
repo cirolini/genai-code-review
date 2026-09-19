@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  entrypoint:
+    runs-on: ubuntu-latest
+    name: Container entrypoint
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build action image
+        run: docker build -t genai-code-review:ci .
+
+      # Regression test for issue #47. GitHub starts container actions with
+      # --workdir /github/workspace, which overrides the image's WORKDIR, so a
+      # relative CMD resolved against the caller's repository and the action
+      # died with "can't open file '/github/workspace/src/main.py'".
+      #
+      # Running with no configuration should reach main() and stop on the first
+      # missing environment variable. Reaching that message proves the
+      # interpreter found the script; "can't open file" proves it did not.
+      - name: Entrypoint resolves under /github/workspace
+        run: |
+          set -o pipefail
+          output=$(docker run --rm --workdir /github/workspace genai-code-review:ci 2>&1 | tee /dev/stderr)
+
+          if grep -q "can't open file" <<<"$output"; then
+            echo "::error::Regression of #47: the entrypoint path is not absolute."
+            exit 1
+          fi
+
+          if ! grep -q "Missing required environment variable" <<<"$output"; then
+            echo "::error::Expected the action to start and report missing configuration."
+            exit 1
+          fi
+
+          echo "Entrypoint resolved correctly."
