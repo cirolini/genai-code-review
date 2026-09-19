@@ -9,7 +9,10 @@ import logging
 
 from clients.github_client import GithubClient
 from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE
+from diff import parse_diff
+from findings import FINDINGS_SCHEMA
 from providers import ProviderError, build_provider
+from reviewer import rank, run_review
 from utils.helpers import get_env_variable
 
 # Configured once here, in the entry point. Library modules only take a logger.
@@ -52,13 +55,15 @@ def main():
     mode = env_vars["MODE"]
 
     try:
-        if mode == "files":
+        if mode == "review":
+            process_review(github_client, provider, pr_id, language, custom_prompt)
+        elif mode == "files":
             process_files(github_client, provider, pr_id, language, custom_prompt)
         elif mode == "patch":
             process_patch(github_client, provider, pr_id, language, custom_prompt)
         else:
-            logger.error("Invalid mode. Choose either 'files' or 'patch'.")
-            raise ValueError("Invalid mode. Choose either 'files' or 'patch'.")
+            logger.error("Invalid mode. Choose 'review', 'files' or 'patch'.")
+            raise ValueError("Invalid mode. Choose 'review', 'files' or 'patch'.")
     except ProviderError as e:
         report_provider_failure(github_client, pr_id, e)
         raise
@@ -175,6 +180,118 @@ def _as_float(name, value, default):
         return float(value)
     except (TypeError, ValueError) as e:
         raise ValueError(f"{name} must be a number, got {value!r}.") from e
+
+
+def process_review(github_client, provider, pr_id, language, custom_prompt):
+    """
+    Review the diff and post inline comments, grouped into one review.
+
+    This is v3's mode. `files` and `patch` keep doing what they did in v2 so
+    that an existing workflow is not changed underneath its owner.
+    """
+    logger.info("Reviewing PR %s", pr_id)
+    patch_content = github_client.get_pr_patch(pr_id)
+    parsed = parse_diff(patch_content)
+
+    if not len(parsed):
+        logger.info("No files in the diff.")
+        github_client.post_comment(pr_id, "No reviewable changes in this pull request.")
+        return
+
+    outcome = run_review(
+        provider,
+        patch_content,
+        parsed,
+        language=language,
+        custom_prompt=custom_prompt,
+        schema=FINDINGS_SCHEMA,
+    )
+
+    findings = rank(outcome.findings)
+    comments = [build_inline_comment(f) for f in findings]
+    body = build_review_body(outcome, findings, parsed)
+
+    github_client.create_review(pr_id, comments, body)
+
+
+def build_inline_comment(finding):
+    """Render one finding as a GitHub review comment on its diff lines."""
+    parts = [
+        f"**{finding.severity} · {finding.category}** — {finding.title}",
+        "",
+        finding.rationale,
+    ]
+    if finding.suggestion:
+        parts += ["", "```suggestion", finding.suggestion.rstrip(), "```"]
+    parts += ["", f"<sub>confidence {finding.confidence:.0%}</sub>"]
+
+    comment = {
+        "path": finding.file,
+        "line": finding.line_end,
+        "side": "RIGHT",
+        "body": "\n".join(parts),
+    }
+    if finding.line_end > finding.line_start:
+        comment["start_line"] = finding.line_start
+        comment["start_side"] = "RIGHT"
+    return comment
+
+
+def build_review_body(outcome, findings, parsed):
+    """
+    The review's summary comment.
+
+    Says what was reviewed and, importantly, what was not. A reader who assumes
+    full coverage because the bot said nothing is worse off than one who was
+    told the truth.
+    """
+    if outcome.parse_failed:
+        return (
+            "## Code review\n\n"
+            "The model did not return output matching the required schema, even "
+            "after a repair attempt, so no findings could be extracted. The diff "
+            "was **not** reviewed.\n\n" + _footer(outcome)
+        )
+
+    if not findings:
+        lines = ["## Code review", "", f"No findings across {len(parsed)} changed file(s)."]
+    else:
+        counts = {}
+        for f in findings:
+            counts[f.severity] = counts.get(f.severity, 0) + 1
+        summary = ", ".join(f"{count} {name}" for name, count in counts.items())
+        lines = [
+            "## Code review",
+            "",
+            f"{len(findings)} finding(s) across {len(parsed)} changed file(s): {summary}.",
+        ]
+
+    if outcome.unplaceable:
+        lines += [
+            "",
+            f"<details><summary>{len(outcome.unplaceable)} finding(s) could not be "
+            "placed on a line in this diff</summary>",
+            "",
+        ]
+        for finding, reason in outcome.unplaceable:
+            lines.append(f"- **{finding.title}** — {reason}")
+        lines += ["", "</details>"]
+
+    if outcome.repaired:
+        lines += ["", "<sub>The model's first response was malformed and was repaired.</sub>"]
+
+    lines += ["", _footer(outcome)]
+    return "\n".join(lines)
+
+
+def _footer(outcome):
+    result = outcome.result
+    if result is None:
+        return ""
+    footer = f"<sub>{result.provider} · `{result.model}`"
+    if result.usage and result.usage.total_tokens is not None:
+        footer += f" · {result.usage.input_tokens} in / {result.usage.output_tokens} out tokens"
+    return footer + f" · {result.latency_s:.1f}s</sub>"
 
 
 def process_files(github_client, provider, pr_id, language, custom_prompt):
