@@ -1,5 +1,40 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Multi-provider support.** `provider` selects OpenAI, Anthropic, Google
+  Gemini, or any OpenAI-compatible server (Ollama, vLLM, Azure OpenAI,
+  OpenRouter) via `base_url`. New inputs: `provider`, `model`, `api_key`,
+  `base_url`, `temperature`, `max_tokens`.
+- **Retries with backoff** on transient provider failures (429, 5xx, timeouts),
+  and no retries on permanent ones — retrying a rejected key only delays the
+  message the user needs.
+- **Failures are reported in the pull request** rather than only in the run log,
+  and the check fails. A review that silently did not happen is indistinguishable
+  from a review that found nothing, which is the worse outcome for a review bot.
+- Review comments now carry a footer naming the provider, model, token counts
+  and latency.
+
+### Changed
+
+- Model IDs and defaults live in `src/config.py` rather than being spread across
+  adapters. Per-provider defaults are cost-conscious, not each vendor's
+  strongest model.
+- The comment header no longer says "ChatGPT's code review", which was wrong as
+  soon as the reviewer was Claude or Gemini.
+
+### Deprecated
+
+- `openai_api_key`, `openai_model`, `openai_temperature` and `openai_max_tokens`
+  are aliases for the new inputs. They still work; a v2 workflow runs on v3
+  unchanged.
+
+### Removed
+
+- `src/clients/openai_client.py`, superseded by `src/providers/`.
+
 ## v2.1 — 2026-09-19
 
 A maintenance release. No new features and no input changes: `v2.1` exists
