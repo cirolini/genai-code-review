@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed (breaking)
+
+- **`mode` now defaults to `review`** instead of `files`. A workflow that never
+  set `mode` gets inline comments on the diff instead of one long summary
+  comment. Workflows that set `mode` explicitly are unaffected, and the `v2`
+  tag is untouched — this applies only when the pin moves to `v3`. Pin
+  `mode: files` to keep the previous output.
+
 ### Added
 
 - **Repository configuration.** Settings can live in `.genai-review.yml` at the

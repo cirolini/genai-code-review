@@ -50,9 +50,9 @@ inputs:
     required: false
     default: ""
   mode:
-    description: "How to review. 'review' posts inline comments on the diff (v3). 'files' and 'patch' keep the v2 single-comment behaviour."
+    description: "How to review. 'review' (default) posts inline comments on the diff. 'files' and 'patch' keep the v2 single-comment behaviour."
     required: false
-    default: "files"
+    default: "review"
   language:
     description: "The language for the code review"
     required: false

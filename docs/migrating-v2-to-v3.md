@@ -1,14 +1,23 @@
 # Migrating from v2 to v3
 
-**Short version: you do not have to change anything.** Every v2 input still
-works. If you point `@v2` at `@v3` and change nothing else, the action behaves
-as it did before.
-
-That is deliberate. Everything new in v3 is opt-in.
+**Every v2 input still works.** The one thing that changes when you move from
+`@v2` to `@v3` is the default review mode.
 
 ---
 
-## If you change nothing
+## The one breaking change: `mode` now defaults to `review`
+
+In v2 the default was `files`, which produced a single long comment. In v3 the
+default is `review`, which posts inline comments on the diff lines.
+
+**If your workflow sets `mode` explicitly, nothing changes for you.** `mode:
+files` and `mode: patch` still do exactly what they did in v2.
+
+**If your workflow does not set `mode`, the output changes shape.** That is
+intentional for a major version — inline comments are what v3 is for — but it
+is a real change and you should expect it rather than discover it.
+
+To keep the v2 behaviour, pin it:
 
 ```yaml
 - uses: cirolini/genai-code-review@v3
@@ -16,35 +25,22 @@ That is deliberate. Everything new in v3 is opt-in.
     openai_api_key: ${{ secrets.OPENAI_API_KEY }}
     github_token: ${{ secrets.GITHUB_TOKEN }}
     github_pr_id: ${{ github.event.number }}
-    mode: files
+    mode: files          # <- keeps the single-comment output
 ```
 
-This keeps working. `openai_api_key`, `openai_model`, `openai_temperature` and
-`openai_max_tokens` are read whenever their v3 equivalents are unset, and
-`mode: files` and `mode: patch` still produce one summary comment, exactly as in
-v2.
+Note that `@v2` itself is untouched. A workflow pinned to `cirolini/genai-code-review@v2`
+keeps the `files` default and keeps behaving exactly as it does today; only
+moving the pin to `@v3` changes anything.
 
-The one thing you should check: if you pinned `openai_model: "gpt-3.5-turbo"`
-explicitly, change it. That model loses API access on 2026-10-23. The default is
-now `gpt-5.6-luna`, which costs less than `gpt-3.5-turbo` did on both input and
-output tokens.
+### Also check your model
+
+If you pinned `openai_model: "gpt-3.5-turbo"` explicitly, change it. That model
+loses API access on 2026-10-23. The default is now `gpt-5.6-luna`, which costs
+less than `gpt-3.5-turbo` did on both input and output tokens.
 
 ---
 
-## Getting the v3 behaviour
-
-Add `mode: review`:
-
-```yaml
-- uses: cirolini/genai-code-review@v3
-  with:
-    api_key: ${{ secrets.OPENAI_API_KEY }}
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    github_pr_id: ${{ github.event.number }}
-    mode: review
-```
-
-That changes the output shape:
+## What the new default gives you
 
 | | v2 (`mode: files` / `patch`) | v3 (`mode: review`) |
 |---|---|---|
@@ -55,8 +51,7 @@ That changes the output shape:
 | Large diffs | silently truncated by the provider | chunked, with anything that did not fit reported |
 | Lockfiles, generated code | sent to the model | skipped by default |
 
-`mode` still defaults to `files`, so this is something you turn on rather than
-something that happens to you.
+This is now the default, so it is what you get unless you pin `mode: files`.
 
 ---
 

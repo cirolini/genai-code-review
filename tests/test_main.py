@@ -89,12 +89,23 @@ class EnvResolutionTests(unittest.TestCase):
             env = get_env_vars()
         self.assertIsNone(env["MODEL"])
 
-    def test_mode_and_language_have_defaults(self):
+    def test_mode_defaults_to_review_in_v3(self):
+        """
+        v3 defaults to inline comments. A v2 workflow that set `mode`
+        explicitly is unaffected; one that did not gets the new behaviour on a
+        major version bump, which is what a major version is for.
+        """
         env_vars = {k: v for k, v in V2_ENV.items() if k not in ("MODE", "LANGUAGE")}
         with patch.dict("os.environ", env_vars, clear=True):
             env = get_env_vars()
-        self.assertEqual(env["MODE"], "files")
+        self.assertEqual(env["MODE"], "review")
         self.assertEqual(env["LANGUAGE"], "en")
+
+    def test_an_explicit_v2_mode_is_still_honoured(self):
+        for mode in ("files", "patch"):
+            with self.subTest(mode=mode):
+                with patch.dict("os.environ", dict(V2_ENV, MODE=mode), clear=True):
+                    self.assertEqual(get_env_vars()["MODE"], mode)
 
     def test_missing_github_token_is_rejected(self):
         env_vars = {k: v for k, v in V2_ENV.items() if k != "GITHUB_TOKEN"}
