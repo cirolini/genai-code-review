@@ -256,6 +256,14 @@ provider. In a case study about measurement, invented numbers would be worse
 than none. `make eval PROVIDER=openai` produces the table; the two comparisons
 that matter are budget on versus off, and single model versus panel.
 
+There is a harder admission underneath that one. At the time of writing, no
+part of v3 has run against a live provider at all — the repository's API key
+had expired, so every review CI attempted failed with a 401 before reaching a
+model. The adapters and model IDs are checked against each provider's own
+documentation and against the installed SDKs, which is not the same thing as a
+response coming back. That gap closes with one working key, and it should close
+before any of this is tagged as a release.
+
 ---
 
 ## What I would do next
