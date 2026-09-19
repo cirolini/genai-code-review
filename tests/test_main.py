@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace
+from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
 from main import (
@@ -118,6 +119,39 @@ class EnvResolutionTests(unittest.TestCase):
             with self.assertRaises(ValueError) as ctx:
                 get_env_vars()
         self.assertIn("GITHUB_PR_ID", str(ctx.exception))
+
+
+class ProviderDefaultTests(unittest.TestCase):
+    """
+    v3 defaults to gemini, the provider with measured results behind it. But a
+    v2 workflow passes `openai_api_key` and no `provider`, and moving the
+    default would send an OpenAI key to Google.
+    """
+
+    BASE: ClassVar[dict] = {"GITHUB_TOKEN": "t", "GITHUB_PR_ID": "1"}
+
+    def test_defaults_to_gemini_for_a_fresh_workflow(self):
+        with patch.dict("os.environ", dict(self.BASE, API_KEY="k"), clear=True):
+            self.assertEqual(get_env_vars()["PROVIDER"], "gemini")
+
+    def test_a_v2_workflow_stays_on_openai(self):
+        with patch.dict("os.environ", dict(self.BASE, OPENAI_API_KEY="k"), clear=True):
+            self.assertEqual(get_env_vars()["PROVIDER"], "openai")
+
+    def test_an_explicit_provider_always_wins(self):
+        env = dict(self.BASE, OPENAI_API_KEY="k", PROVIDER="anthropic")
+        with patch.dict("os.environ", env, clear=True):
+            self.assertEqual(get_env_vars()["PROVIDER"], "anthropic")
+
+    def test_the_v3_key_input_does_not_imply_openai(self):
+        """`api_key` is provider-neutral; only the v2-only alias implies OpenAI."""
+        env = dict(self.BASE, API_KEY="k", OPENAI_API_KEY="legacy")
+        with patch.dict("os.environ", env, clear=True):
+            self.assertEqual(get_env_vars()["PROVIDER"], "gemini")
+
+    def test_no_key_at_all_still_defaults_to_gemini(self):
+        with patch.dict("os.environ", dict(self.BASE), clear=True):
+            self.assertEqual(get_env_vars()["PROVIDER"], "gemini")
 
 
 class MainDispatchTests(unittest.TestCase):

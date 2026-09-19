@@ -508,6 +508,26 @@ class AcceptanceTests(unittest.TestCase):
             self.assertEqual(comment["side"], "RIGHT")
             self.assertIn(comment["path"], [f"mod{i}.py" for i in range(6)])
 
+    def test_deleted_and_binary_files_are_not_sent_to_the_model(self):
+        """
+        A finding on either is rejected at placement time anyway — there is no
+        line in the new file to attach to — so sending them only costs tokens.
+        """
+        patch = (
+            "diff --git a/live.py b/live.py\n--- a/live.py\n+++ b/live.py\n"
+            "@@ -1,1 +1,2 @@\n import os\n+x = 1\n"
+            "diff --git a/gone.py b/gone.py\ndeleted file mode 100644\n"
+            "--- a/gone.py\n+++ /dev/null\n@@ -1,1 +0,0 @@\n-old = True\n"
+            "diff --git a/pic.bin b/pic.bin\nBinary files a/pic.bin and b/pic.bin differ\n"
+        )
+        github = FakeGithub(patch)
+        execute(github, lambda _: self.provider, 1, ReviewSettings(ignore_paths=()))
+
+        prompt = self.provider.review.call_args.args[0]
+        self.assertIn("live.py", prompt)
+        self.assertNotIn("gone.py", prompt)
+        self.assertNotIn("pic.bin", prompt)
+
     def test_nothing_to_review_still_produces_a_summary(self):
         github = FakeGithub(
             "diff --git a/package-lock.json b/package-lock.json\n"

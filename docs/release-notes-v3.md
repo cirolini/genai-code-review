@@ -12,36 +12,28 @@ publishing to the Marketplace are all decisions for the maintainer.
 - **`mode` defaults to `review`.** A major version is the right moment to make
   v3 do what v3 is for. Workflows that set `mode` explicitly are unaffected;
   `@v2` is untouched and keeps the `files` default.
+- **`provider` defaults to `gemini`.** It is the only configuration with
+  measured numbers behind it — 100% precision, 93% recall, 0% noise, $0.0009
+  per pull request. A workflow passing the deprecated `openai_api_key` without
+  a `provider` stays on OpenAI.
 
 ## Still open
 
 ### Marketplace
 
 The existing listing is named "ChatGPT GitHub Actions", which no longer
-describes the action — it supports four providers. Updating the listing is a
-separate, explicit step from tagging and has not been done.
+describes the action. Updating it is a separate, explicit step and has not been
+done.
 
-### Live verification: two of four providers
+### Two adapters remain unverified against a live API
 
-The pipeline has now run end to end against real models, and
-[`docs/results/`](results/) has measured numbers.
+`openai` shares its class with `openai-compatible`, which is verified against
+Groq, so the code path is exercised — but `gpt-5.6-luna` itself has never been
+called. `anthropic` authenticates and reaches Anthropic's billing layer, but
+the account used for testing has no credit.
 
-| Provider | Status |
-|---|---|
-| `gemini` | **Verified.** 21/21 eval cases, 100% precision, 93% recall, 0% noise |
-| `openai-compatible` | **Verified** against Groq, 21/21 cases |
-| `openai` | **Not verified.** Same adapter class as `openai-compatible`, so the code path is covered, but `gpt-5.6-luna` itself has never been called |
-| `anthropic` | **Not verified.** The adapter authenticates and reaches Anthropic's billing layer, but the test account has no credit, so no response has come back |
-
-Running it caught three real bugs that 213 passing tests had not: the Gemini
-client being garbage collected mid-call, Gemini rejecting the
-`additionalProperties` that OpenAI strict mode requires, and strict mode
-forbidding the optional `suggestion` property. All three are fixed, with tests.
-
-**Remaining risk before tagging:** `gpt-5.6-luna` is the default model and has
-never been called. The adapter around it is exercised, and the model ID is from
-OpenAI's own documentation, but a working `OPENAI_API_KEY` and one green run
-would close the last gap.
+Neither is the default any more, which is why this no longer blocks the
+release.
 
 ---
 
@@ -53,15 +45,19 @@ v3 rebuilds this action around a single idea: the scarce resource in code review
 is the reviewer's attention, and a bot that posts forty comments spends more of
 it than it returns.
 
-**One breaking change:** `mode` now defaults to `review`, so a workflow that
-never set `mode` gets inline comments instead of a single summary comment. Pin
-`mode: files` to keep the old output. Every v2 input still works, and `@v2`
-itself is untouched. See [the migration guide](migrating-v2-to-v3.md).
+**Two changed defaults.** `mode` now defaults to `review`, so a workflow that
+never set `mode` gets inline comments instead of one summary comment — pin
+`mode: files` to keep the old output. And `provider` now defaults to `gemini`,
+though a workflow passing the deprecated `openai_api_key` without a `provider`
+stays on OpenAI.
+
+Every v2 input still works, and `@v2` itself is untouched. See
+[the migration guide](migrating-v2-to-v3.md).
 
 #### Multiple providers
 
-`provider` selects OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible
-server — Ollama, vLLM, Azure OpenAI, OpenRouter — via `base_url`. New inputs:
+`provider` selects Google Gemini (the default), OpenAI, Anthropic, or any
+OpenAI-compatible server — Ollama, vLLM, Azure OpenAI, OpenRouter — via `base_url`. New inputs:
 `provider`, `model`, `api_key`, `base_url`, `temperature`, `max_tokens`. The
 `openai_*` inputs remain as aliases.
 
@@ -92,6 +88,16 @@ Findings are posted as inline comments grouped into a single review.
   silently truncated.
 - `panel` (experimental): two providers merged, with agreement as a confidence
   signal. Roughly double the cost.
+
+#### Measured
+
+| Model | Precision | Recall | Noise rate | Cost / PR |
+|---|---|---|---|---|
+| `gemini-3.8-flash` | 100% | 93% | 0% | $0.0009 |
+| `gpt-oss-120b` | 70% | 93% | 83% | n/a |
+
+21 fixtures, 15 with a seeded defect and 6 clean. Recall did not separate the
+two models; noise did. Full numbers and limits in [`docs/results/`](results/).
 
 #### Measurement
 

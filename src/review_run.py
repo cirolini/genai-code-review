@@ -84,7 +84,9 @@ def execute(github_client, build_member, pr_id, settings: ReviewSettings) -> Run
     )
 
     parsed = parse_diff(patch)
-    reviewable, report.ignored_paths = partition(parsed.paths, settings.ignore_paths)
+    reviewable, report.ignored_paths = partition(
+        _reviewable_paths(parsed), settings.ignore_paths
+    )
 
     if not reviewable:
         _publish(github_client, pr_id, report, parsed, previous, nothing_to_review=True)
@@ -134,6 +136,18 @@ def execute(github_client, build_member, pr_id, settings: ReviewSettings) -> Run
 
     _publish(github_client, pr_id, report, parsed, previous)
     return report
+
+
+def _reviewable_paths(parsed):
+    """
+    Paths worth sending to the model.
+
+    Deleted and binary files are dropped here rather than later. A finding on
+    either is already rejected at placement time — there is no line in the new
+    file to attach a comment to — so sending them buys nothing and costs
+    tokens, while giving the model more surface to comment on.
+    """
+    return [f.path for f in parsed if not (f.is_deleted or f.is_binary)]
 
 
 def _select_diff(github_client, pr_id, previous, settings, head_sha):

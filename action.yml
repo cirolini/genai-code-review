@@ -2,9 +2,9 @@ name: "ChatGPT GitHub Actions"
 description: "This GitHub Action automates code review for pull requests using OpenAI's GPT models. By integrating this action into your CI/CD pipeline, it provides detailed, AI-generated reviews of your code directly within the PR comments. This tool helps maintain code quality, ensures adherence to best practices, and highlights potential improvements and bugs."
 inputs:
   provider:
-    description: "LLM provider: openai, anthropic, gemini, or openai-compatible."
+    description: "LLM provider: gemini (default), openai, anthropic, or openai-compatible. A workflow that sets the deprecated openai_api_key and no provider stays on openai."
     required: false
-    default: "openai"
+    default: ""
   model:
     description: "Model ID. Defaults to a cost-conscious model for the chosen provider."
     required: false
