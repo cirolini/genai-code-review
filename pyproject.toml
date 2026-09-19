@@ -1,0 +1,26 @@
+[project]
+name = "genai-code-review"
+version = "2.1.0"
+description = "GitHub Action that reviews pull request diffs with an LLM and posts the comments on the PR"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import sorting
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "LOG",  # logging misuse
+    "G",    # logging format
+    "RUF",  # ruff-specific
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
