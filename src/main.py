@@ -12,6 +12,8 @@ from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE
 from panel import parse_panel
 from paths import parse_ignore_paths
 from providers import ProviderError, build_provider
+from repo_config import load as load_repo_config
+from repo_config import resolve as resolve_setting
 from review_run import ReviewSettings, execute
 from runlog import write as write_runlog
 from utils.helpers import get_env_variable
@@ -108,46 +110,55 @@ def report_provider_failure(github_client, pr_id, error):
 
 def get_env_vars():
     """
-    Read configuration from the environment.
+    Read configuration from the environment and `.genai-review.yml`.
 
-    v3 introduces `provider`, `model`, `api_key` and `base_url`. The v2 inputs
-    (`openai_model`, `openai_api_key`, `openai_temperature`, `openai_max_tokens`)
-    still work and are used whenever the v3 equivalent is unset, so a workflow
-    written against v2 keeps running unchanged.
+    Precedence is action input, then repository config file, then default. The
+    workflow is the more specific statement of intent, and a file in the
+    repository should not silently override what a workflow asked for.
 
-    Returns:
-        dict: the resolved configuration.
+    The v2 inputs (`openai_model`, `openai_api_key`, `openai_temperature`,
+    `openai_max_tokens`) still work and are used whenever their v3 equivalent
+    is unset, so a workflow written against v2 keeps running unchanged.
 
     Raises:
         ValueError: if a required variable is missing or cannot be converted.
     """
+    config = load_repo_config()
+
+    def setting(name, key, default=None):
+        return resolve_setting(get_env_variable(name, required=False), config, key, default)
+
     env = {
-        "GITHUB_TOKEN": _required("GITHUB_TOKEN"),
-        "GITHUB_PR_ID": _as_int("GITHUB_PR_ID", _required("GITHUB_PR_ID")),
-        "MODE": get_env_variable("MODE", required=False) or "files",
-        "LANGUAGE": get_env_variable("LANGUAGE", required=False) or "en",
-        "CUSTOM_PROMPT": get_env_variable("CUSTOM_PROMPT", required=False),
-        "PROVIDER": (
-            get_env_variable("PROVIDER", required=False) or DEFAULT_PROVIDER
-        ),
-        "BASE_URL": get_env_variable("BASE_URL", required=False) or None,
-        "MAX_COMMENTS": _as_int_or("MAX_COMMENTS", get_env_variable("MAX_COMMENTS", False), 5),
-        "MIN_SEVERITY": (
-            get_env_variable("MIN_SEVERITY", required=False) or "nit"
-        ).strip().lower(),
-        "MIN_CONFIDENCE": _as_float(
-            "MIN_CONFIDENCE", get_env_variable("MIN_CONFIDENCE", required=False), 0.0
-        ),
-        "IGNORE_PATHS": parse_ignore_paths(get_env_variable("IGNORE_PATHS", required=False)),
-        "INCREMENTAL": _as_bool(get_env_variable("INCREMENTAL", required=False), True),
-        "PANEL": parse_panel(get_env_variable("PANEL", required=False)),
+        "GITHUB_TOKEN": get_env_variable("GITHUB_TOKEN", required=True),
+        "GITHUB_PR_ID": _as_int("GITHUB_PR_ID", get_env_variable("GITHUB_PR_ID", required=True)),
+        "MODE": setting("MODE", "mode", "files"),
+        "LANGUAGE": setting("LANGUAGE", "language", "en"),
+        "CUSTOM_PROMPT": setting("CUSTOM_PROMPT", "custom_prompt"),
+        "PROVIDER": setting("PROVIDER", "provider", DEFAULT_PROVIDER),
+        "BASE_URL": setting("BASE_URL", "base_url") or None,
+        "MIN_SEVERITY": str(setting("MIN_SEVERITY", "min_severity", "nit")).strip().lower(),
+        "INCREMENTAL": _as_bool(setting("INCREMENTAL", "incremental", True), True),
+        "PANEL": _as_panel(setting("PANEL", "panel")),
     }
 
-    # v3 input first, v2 alias second.
+    env["MAX_COMMENTS"] = _as_int_or(
+        "MAX_COMMENTS", setting("MAX_COMMENTS", "max_comments"), 5
+    )
+    env["MIN_CONFIDENCE"] = _as_float(
+        "MIN_CONFIDENCE", setting("MIN_CONFIDENCE", "min_confidence"), 0.0
+    )
+    env["IGNORE_PATHS"] = _as_ignore_paths(
+        get_env_variable("IGNORE_PATHS", required=False), config
+    )
+
+    # v3 input first, v2 alias second, config file last.
     env["MODEL"] = _first(
         get_env_variable("MODEL", required=False),
         get_env_variable("OPENAI_MODEL", required=False),
+        config.get("model"),
     )
+    # api_key is never read from the config file: a credential belongs in a
+    # secret, not in a file that can be committed by accident.
     env["API_KEY"] = _first(
         get_env_variable("API_KEY", required=False),
         get_env_variable("OPENAI_API_KEY", required=False),
@@ -157,6 +168,7 @@ def get_env_vars():
         _first(
             get_env_variable("TEMPERATURE", required=False),
             get_env_variable("OPENAI_TEMPERATURE", required=False),
+            config.get("temperature"),
         ),
         DEFAULT_TEMPERATURE,
     )
@@ -165,6 +177,7 @@ def get_env_vars():
         _first(
             get_env_variable("MAX_TOKENS", required=False),
             get_env_variable("OPENAI_MAX_TOKENS", required=False),
+            config.get("max_tokens"),
         ),
         DEFAULT_MAX_TOKENS,
     )
@@ -174,17 +187,32 @@ def get_env_vars():
     return env
 
 
+def _as_panel(value):
+    if isinstance(value, list):
+        return [str(item).strip().lower() for item in value if str(item).strip()]
+    return parse_panel(value)
+
+
+def _as_ignore_paths(input_value, config):
+    """
+    Action input wins; otherwise the config file; otherwise the defaults.
+
+    parse_ignore_paths distinguishes unset (use defaults) from empty (ignore
+    nothing), so None has to be passed through rather than coerced to "".
+    """
+    if input_value not in (None, ""):
+        return parse_ignore_paths(input_value)
+    if "ignore_paths" in config:
+        return tuple(config["ignore_paths"])
+    return parse_ignore_paths(input_value if input_value == "" else None)
+
+
 def _first(*values):
     """The first value that is set and non-empty."""
     for value in values:
         if value not in (None, ""):
             return value
     return None
-
-
-def _required(name):
-    value = get_env_variable(name, required=True)
-    return value
 
 
 def _as_int(name, value):
