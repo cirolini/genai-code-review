@@ -281,11 +281,6 @@ threads on the bot's comments are a free signal about which findings were worth
 posting. That is the honest way to tune the budget — from what people accepted,
 not from what I guessed.
 
-**Reconsider the default mode.** `mode` still defaults to `files`, the v2
-behaviour, because changing it would alter what existing workflows produce. The
-v3 release is the right moment to flip it, as a documented change rather than a
-silent one.
-
 **Let severity thresholds vary by path.** A `blocker` in an auth module and a
 `blocker` in a build script are not the same thing, and `min_severity` is
 currently global.

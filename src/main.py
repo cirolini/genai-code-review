@@ -131,7 +131,7 @@ def get_env_vars():
     env = {
         "GITHUB_TOKEN": get_env_variable("GITHUB_TOKEN", required=True),
         "GITHUB_PR_ID": _as_int("GITHUB_PR_ID", get_env_variable("GITHUB_PR_ID", required=True)),
-        "MODE": setting("MODE", "mode", "files"),
+        "MODE": setting("MODE", "mode", "review"),
         "LANGUAGE": setting("LANGUAGE", "language", "en"),
         "CUSTOM_PROMPT": setting("CUSTOM_PROMPT", "custom_prompt"),
         "PROVIDER": setting("PROVIDER", "provider", DEFAULT_PROVIDER),

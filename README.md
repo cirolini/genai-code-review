@@ -32,7 +32,6 @@ jobs:
           api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.number }}
-          mode: review
 ```
 
 No `actions/checkout` step is needed — the action reads the pull request over
@@ -138,7 +137,7 @@ secret.
 | `provider` | `openai` | `openai`, `anthropic`, `gemini`, `openai-compatible` |
 | `model` | per provider | Model ID |
 | `base_url` | — | Required for `openai-compatible` |
-| `mode` | `files` | `review` for inline comments; `files`/`patch` are v2 behaviour |
+| `mode` | `review` | `review` posts inline comments; `files`/`patch` are v2 behaviour |
 | `max_comments` | `5` | Inline comments per review; the rest are counted and listed |
 | `min_severity` | `nit` | `blocker`, `major`, `minor`, `nit` |
 | `min_confidence` | `0` | 0 to 1 |

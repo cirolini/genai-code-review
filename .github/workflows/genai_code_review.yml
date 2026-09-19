@@ -28,6 +28,7 @@ jobs:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.pull_request.number }}
+          mode: review
           openai_model: "gpt-5.6-luna"
           openai_temperature: 0.5
           openai_max_tokens: 2048
