@@ -86,10 +86,48 @@ class TestGithubClient(unittest.TestCase):
         patch_content = self.github_client.get_pr_patch(self.pr_id)
         expected_url = f"https://api.github.com/repos/{self.repo_name}/pulls/{self.pr_id}"
         mock_get.assert_called_with(expected_url, headers={
-            'Authorization': f"token {self.token}",
-            'Accept': 'application/vnd.github.v3.diff'
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/vnd.github.v3.diff",
+            "X-GitHub-Api-Version": "2022-11-28",
         }, timeout=60)
         self.assertEqual(patch_content, "patch content")
+
+    @patch('clients.github_client.requests.post')
+    def test_create_review_groups_comments_into_one_request(self, mock_post):
+        """
+        One review, not one comment per finding: GitHub notifies per comment,
+        so N comments is N emails for a single pass over the pull request.
+        """
+        mock_post.return_value = MagicMock(
+            raise_for_status=MagicMock(), json=MagicMock(return_value={"id": 7})
+        )
+        comments = [
+            {"path": "a.py", "line": 3, "side": "RIGHT", "body": "one"},
+            {"path": "b.py", "line": 9, "side": "RIGHT", "body": "two"},
+        ]
+
+        self.github_client.create_review(self.pr_id, comments, "summary")
+
+        self.assertEqual(mock_post.call_count, 1)
+        payload = mock_post.call_args.kwargs["json"]
+        self.assertEqual(payload["event"], "COMMENT")
+        self.assertEqual(payload["body"], "summary")
+        self.assertEqual(payload["comments"], comments)
+
+    @patch('clients.github_client.requests.post')
+    def test_create_review_omits_the_comments_key_when_there_are_none(self, mock_post):
+        """GitHub rejects a review carrying an empty comments array."""
+        mock_post.return_value = MagicMock(
+            raise_for_status=MagicMock(), json=MagicMock(return_value={"id": 7})
+        )
+        self.github_client.create_review(self.pr_id, [], "nothing found")
+        self.assertNotIn("comments", mock_post.call_args.kwargs["json"])
+
+    def test_api_root_follows_github_api_url_for_enterprise(self):
+        with patch.dict(os.environ, {"GITHUB_API_URL": "https://ghe.example.com/api/v3"}):
+            with patch('clients.github_client.Github'):
+                client = GithubClient(self.token)
+        self.assertEqual(client.api_root, "https://ghe.example.com/api/v3")
 
 if __name__ == '__main__':
     unittest.main()
