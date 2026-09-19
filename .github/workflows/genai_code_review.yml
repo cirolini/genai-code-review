@@ -31,3 +31,13 @@ jobs:
           openai_model: "gpt-5.6-luna"
           openai_temperature: 0.5
           openai_max_tokens: 2048
+
+      # Keeps a record of cost, coverage and what was suppressed, so claims
+      # about the tool can be checked rather than asserted.
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genai-review-runlog
+          path: genai-review-runlog.json
+          if-no-files-found: ignore
