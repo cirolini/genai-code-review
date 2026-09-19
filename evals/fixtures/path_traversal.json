@@ -1,0 +1,14 @@
+{
+  "name": "path_traversal",
+  "note": "basename sanitisation removed from a user-supplied path.",
+  "expected": [
+    {
+      "file": "web/files.py",
+      "line": 22,
+      "categories": [
+        "security"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+diff --git a/auth/password.py b/auth/password.py
+--- a/auth/password.py
++++ b/auth/password.py
+@@ -11,1 +11,1 @@
+-    return bcrypt.hashpw(raw.encode(), bcrypt.gensalt())
++    return hashlib.md5(raw.encode()).hexdigest()

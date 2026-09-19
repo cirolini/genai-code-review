@@ -1,0 +1,7 @@
+diff --git a/app/users.py b/app/users.py
+--- a/app/users.py
++++ b/app/users.py
+@@ -12,1 +12,2 @@
+-    cur.execute("SELECT * FROM users WHERE name = %s", (name,))
++    query = f"SELECT * FROM users WHERE name = '{name}'"
++    cur.execute(query)

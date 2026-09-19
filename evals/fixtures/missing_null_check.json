@@ -1,0 +1,14 @@
+{
+  "name": "missing_null_check",
+  "note": "None guard removed before attribute access.",
+  "expected": [
+    {
+      "file": "api/profile.py",
+      "line": 9,
+      "categories": [
+        "bug"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

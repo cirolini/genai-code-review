@@ -39,6 +39,11 @@ jobs:
 
       - run: pytest -q
 
+      # The eval set must stay runnable and internally consistent even when
+      # no provider key is available: every seeded defect has to point at a
+      # line its own diff actually contains.
+      - run: python -m evals.run --dry-run
+
   entrypoint:
     runs-on: ubuntu-latest
     name: Container entrypoint

@@ -1,0 +1,14 @@
+{
+  "name": "sql_injection",
+  "note": "Parameterised query replaced with string interpolation.",
+  "expected": [
+    {
+      "file": "app/users.py",
+      "line": 12,
+      "categories": [
+        "security"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

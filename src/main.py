@@ -13,6 +13,7 @@ from panel import parse_panel
 from paths import parse_ignore_paths
 from providers import ProviderError, build_provider
 from review_run import ReviewSettings, execute
+from runlog import write as write_runlog
 from utils.helpers import get_env_variable
 
 # Configured once here, in the entry point. Library modules only take a logger.
@@ -229,6 +230,10 @@ def process_review(github_client, provider, pr_id, language, custom_prompt, sett
         return build_provider(name, api_key=None)
 
     report = execute(github_client, build_member, pr_id, settings)
+
+    runlog_path = get_env_variable("RUNLOG_PATH", required=False) or "genai-review-runlog.json"
+    write_runlog(report, runlog_path, pr_id=pr_id)
+
     logger.info(
         "Review complete: %d posted, %d suppressed, %d file(s) ignored",
         len(report.budget.posted),

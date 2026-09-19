@@ -1,0 +1,14 @@
+{
+  "name": "timezone_bug",
+  "note": "Naive local time used where an aware UTC time is compared against stored values.",
+  "expected": [
+    {
+      "file": "sched/window.py",
+      "line": 14,
+      "categories": [
+        "bug"
+      ],
+      "min_severity": "minor"
+    }
+  ]
+}

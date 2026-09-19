@@ -1,0 +1,14 @@
+{
+  "name": "unbounded_query",
+  "note": "Row limit removed from an export query.",
+  "expected": [
+    {
+      "file": "admin/export.py",
+      "line": 9,
+      "categories": [
+        "performance"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

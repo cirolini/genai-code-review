@@ -1,0 +1,8 @@
+diff --git a/shop/orders.py b/shop/orders.py
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -44,2 +44,2 @@
+-    orders = Order.objects.select_related("customer").all()
+-    return [(o.id, o.customer.name) for o in orders]
++    orders = Order.objects.all()
++    return [(o.id, Customer.objects.get(pk=o.customer_id).name) for o in orders]

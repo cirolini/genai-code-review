@@ -4,6 +4,15 @@
 
 ### Added
 
+- **Run log.** Every review writes a JSON artifact with provider, model, tokens,
+  estimated cost, latency, findings by severity, posted versus suppressed, and
+  what was not reviewed. Never contains the API key, the diff, the code under
+  review, or the findings' rationale text.
+- **Eval set and runner.** 21 fixtures — 15 diffs with a seeded labelled defect,
+  6 clean diffs where the right answer is silence — and `python -m evals.run`,
+  which scores precision, recall, noise rate, cost per pull request and latency,
+  and prints a Markdown table. `make eval` wraps it.
+
 - **`mode: review`** — structured findings posted as inline comments on the
   right diff lines, grouped into a single review. `files` and `patch` keep
   doing exactly what they did in v2, so no existing workflow changes behaviour.

@@ -1,0 +1,6 @@
+diff --git a/admin/export.py b/admin/export.py
+--- a/admin/export.py
++++ b/admin/export.py
+@@ -9,1 +9,1 @@
+-    rows = db.query(Event).limit(1000).all()
++    rows = db.query(Event).all()

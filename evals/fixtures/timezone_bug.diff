@@ -1,0 +1,6 @@
+diff --git a/sched/window.py b/sched/window.py
+--- a/sched/window.py
++++ b/sched/window.py
+@@ -14,1 +14,1 @@
+-    now = datetime.now(timezone.utc)
++    now = datetime.now()

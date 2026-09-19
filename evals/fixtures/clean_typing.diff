@@ -1,0 +1,6 @@
+diff --git a/lib/registry.py b/lib/registry.py
+--- a/lib/registry.py
++++ b/lib/registry.py
+@@ -9,1 +9,1 @@
+-def get(name):
++def get(name: str) -> Handler | None:

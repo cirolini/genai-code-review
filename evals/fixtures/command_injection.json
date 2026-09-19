@@ -1,0 +1,14 @@
+{
+  "name": "command_injection",
+  "note": "Argument list replaced with a shell string built from user input.",
+  "expected": [
+    {
+      "file": "tools/convert.py",
+      "line": 15,
+      "categories": [
+        "security"
+      ],
+      "min_severity": "blocker"
+    }
+  ]
+}

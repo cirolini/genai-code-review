@@ -1,0 +1,8 @@
+diff --git a/tests/test_format.py b/tests/test_format.py
+--- a/tests/test_format.py
++++ b/tests/test_format.py
+@@ -12,0 +13,4 @@
++def test_format_amount_rounds_to_two_places():
++    assert format_amount(1.005) == "1.00"
++    assert format_amount(2.349) == "2.35"
++

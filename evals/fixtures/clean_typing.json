@@ -1,0 +1,5 @@
+{
+  "name": "clean_typing",
+  "note": "Type annotations added to an existing signature.",
+  "expected": []
+}

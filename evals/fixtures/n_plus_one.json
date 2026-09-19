@@ -1,0 +1,14 @@
+{
+  "name": "n_plus_one",
+  "note": "select_related dropped, producing one query per row.",
+  "expected": [
+    {
+      "file": "shop/orders.py",
+      "line": 45,
+      "categories": [
+        "performance"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

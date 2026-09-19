@@ -1,0 +1,8 @@
+diff --git a/lib/format.py b/lib/format.py
+--- a/lib/format.py
++++ b/lib/format.py
+@@ -5,2 +5,2 @@
+-def fmt(v):
+-    return f"{v:.2f}"
++def format_amount(value):
++    return f"{value:.2f}"

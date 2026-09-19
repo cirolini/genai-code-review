@@ -1,0 +1,15 @@
+{
+  "name": "race_condition",
+  "note": "Lock removed around a shared counter mutated from several threads.",
+  "expected": [
+    {
+      "file": "worker/counter.py",
+      "line": 30,
+      "categories": [
+        "bug",
+        "performance"
+      ],
+      "min_severity": "major"
+    }
+  ]
+}

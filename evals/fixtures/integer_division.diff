@@ -1,0 +1,6 @@
+diff --git a/stats/report.py b/stats/report.py
+--- a/stats/report.py
++++ b/stats/report.py
+@@ -7,1 +7,1 @@
+-    return total / count
++    return total // count

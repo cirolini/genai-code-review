@@ -1,0 +1,14 @@
+{
+  "name": "integer_division",
+  "note": "Average now truncates to an integer.",
+  "expected": [
+    {
+      "file": "stats/report.py",
+      "line": 7,
+      "categories": [
+        "bug"
+      ],
+      "min_severity": "minor"
+    }
+  ]
+}
