@@ -34,6 +34,15 @@ class OpenAIProvider(LLMProvider):
         )
 
     def _complete(self, prompt: str, schema: dict | None) -> tuple[str, Usage]:
+        kwargs = {}
+        if schema is not None:
+            # Native structured output. `strict` makes the server enforce the
+            # schema, which removes most of the repair path's work.
+            kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "code_review", "schema": schema, "strict": True},
+            }
+
         response = self._client().chat.completions.create(
             model=self.model,
             messages=[
@@ -42,6 +51,7 @@ class OpenAIProvider(LLMProvider):
             ],
             temperature=self.temperature,
             max_tokens=self.max_tokens,
+            **kwargs,
         )
         text = response.choices[0].message.content or ""
         usage = Usage(
