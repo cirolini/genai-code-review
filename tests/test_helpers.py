@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
-import logging
 
 from utils.helpers import get_env_variable
+
 
 class TestHelpers(unittest.TestCase):
 
@@ -18,7 +18,10 @@ class TestHelpers(unittest.TestCase):
         mock_getenv.return_value = None
         with self.assertRaises(ValueError) as context:
             get_env_variable('MISSING_VAR')
-        self.assertEqual(str(context.exception), 'Missing required environment variable: MISSING_VAR')
+        self.assertEqual(
+            str(context.exception),
+            'Missing required environment variable: MISSING_VAR',
+        )
         mock_getenv.assert_called_once_with('MISSING_VAR')
 
     @patch('utils.helpers.os.getenv')

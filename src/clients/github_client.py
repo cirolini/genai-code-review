@@ -1,17 +1,17 @@
 """
-Este módulo contém a classe GithubClient, que é usada para interagir com a API do Github.
-A classe GithubClient pode ser usada para recuperar informações sobre commits, conteúdo de 
-arquivos e patches de pull requests.
+Client for the GitHub API.
+
+Reads pull requests, commits, file contents and patches, and posts comments
+back onto a pull request.
 """
 
-import os
 import logging
+import os
+
 import requests
 from github import Github
 
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class GithubClient:
     """
@@ -29,9 +29,9 @@ class GithubClient:
             self.client = Github(token)
             self.repo_name = os.getenv('GITHUB_REPOSITORY')
             self.repo = self.client.get_repo(self.repo_name)
-            logging.info("Initialized GitHub client for repository: %s", self.repo_name)
+            logger.info("Initialized GitHub client for repository: %s", self.repo_name)
         except Exception as e:
-            logging.error("Error initializing GitHub client: %s", e)
+            logger.error("Error initializing GitHub client: %s", e)
             raise
 
     def get_pr(self, pr_id):
@@ -46,10 +46,10 @@ class GithubClient:
         """
         try:
             pr = self.repo.get_pull(pr_id)
-            logging.info("Retrieved PR ID: %s", pr_id)
+            logger.info("Retrieved PR ID: %s", pr_id)
             return pr
         except Exception as e:
-            logging.error("Error retrieving PR ID %s: %s", pr_id, e)
+            logger.error("Error retrieving PR ID %s: %s", pr_id, e)
             raise
 
     def get_pr_comments(self, pr_id):
@@ -65,10 +65,10 @@ class GithubClient:
         try:
             pr = self.get_pr(pr_id)
             comments = pr.get_issue_comments()
-            logging.info("Retrieved comments for PR ID: %s", pr_id)
+            logger.info("Retrieved comments for PR ID: %s", pr_id)
             return comments
         except Exception as e:
-            logging.error("Error retrieving comments for PR ID %s: %s", pr_id, e)
+            logger.error("Error retrieving comments for PR ID %s: %s", pr_id, e)
             raise
 
     def post_comment(self, pr_id, body):
@@ -85,10 +85,10 @@ class GithubClient:
         try:
             pr = self.get_pr(pr_id)
             comment = pr.create_issue_comment(body)
-            logging.info("Posted comment to PR ID: %s", pr_id)
+            logger.info("Posted comment to PR ID: %s", pr_id)
             return comment
         except Exception as e:
-            logging.error("Error posting comment to PR ID %s: %s", pr_id, e)
+            logger.error("Error posting comment to PR ID %s: %s", pr_id, e)
             raise
 
     def get_commit_files(self, commit):
@@ -103,10 +103,10 @@ class GithubClient:
         """
         try:
             files = commit.files
-            logging.info("Retrieved files for commit: %s", commit.sha)
+            logger.info("Retrieved files for commit: %s", commit.sha)
             return files
         except Exception as e:
-            logging.error("Error retrieving files for commit %s: %s", commit.sha, e)
+            logger.error("Error retrieving files for commit %s: %s", commit.sha, e)
             raise
 
     def get_file_content(self, commit_sha, filename):
@@ -122,10 +122,10 @@ class GithubClient:
         """
         try:
             content = self.repo.get_contents(filename, ref=commit_sha).decoded_content.decode()
-            logging.info("Retrieved content for file: %s at commit: %s", filename, commit_sha)
+            logger.info("Retrieved content for file: %s at commit: %s", filename, commit_sha)
             return content
         except Exception as e:
-            logging.error(
+            logger.error(
                 "Error retrieving content for file %s at commit %s: %s",
                 filename,
                 commit_sha,
@@ -151,8 +151,8 @@ class GithubClient:
             }
             response = requests.get(url, headers=headers, timeout=60)
             response.raise_for_status()
-            logging.info("Retrieved patch for PR ID: %s", pr_id)
+            logger.info("Retrieved patch for PR ID: %s", pr_id)
             return response.text
         except requests.RequestException as e:
-            logging.error("Error retrieving patch for PR ID %s: %s", pr_id, e)
+            logger.error("Error retrieving patch for PR ID %s: %s", pr_id, e)
             raise

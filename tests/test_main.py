@@ -1,7 +1,14 @@
 import unittest
-from unittest.mock import patch, MagicMock
-import logging
-from main import main, get_env_vars, process_files, process_patch, analyze_commit_files, analyze_patch, create_review_prompt
+from unittest.mock import MagicMock, patch
+
+from main import (
+    create_review_prompt,
+    get_env_vars,
+    main,
+    process_files,
+    process_patch,
+)
+
 
 class TestMainModule(unittest.TestCase):
 

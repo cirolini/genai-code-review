@@ -1,14 +1,20 @@
 """
-Main module for handling the code review process using ChatGPT and GitHub API.
+Entry point for the code review action.
+
+Reads its configuration from the environment, fetches the pull request, asks
+the model for a review and posts the result as a comment.
 """
 
 import logging
+
 from clients.github_client import GithubClient
 from clients.openai_client import OpenAIClient
 from utils.helpers import get_env_variable
 
-# Configure logging
+# Configured once here, in the entry point. Library modules only take a logger.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+logger = logging.getLogger(__name__)
 
 def main():
     """
@@ -17,7 +23,7 @@ def main():
     try:
         env_vars = get_env_vars()
     except ValueError as e:
-        logging.error("Environment variable error: %s", e)
+        logger.error("Environment variable error: %s", e)
         return
 
     github_client = GithubClient(env_vars['GITHUB_TOKEN'])
@@ -41,7 +47,7 @@ def main():
                       language,
                       custom_prompt)
     else:
-        logging.error("Invalid mode. Choose either 'files' or 'patch'.")
+        logger.error("Invalid mode. Choose either 'files' or 'patch'.")
         raise ValueError("Invalid mode. Choose either 'files' or 'patch'.")
 
 def get_env_vars():
@@ -73,13 +79,13 @@ def get_env_vars():
         if value:
             try:
                 env_vars[var] = var_type(value)
-                logging.info(
+                logger.info(
                     "%s (%s) retrieved and converted successfully.",
                     var,
                     var_type.__name__
                 )
             except ValueError as e:
-                logging.error("%s must be of type %s. Error: %s", var, var_type.__name__, e)
+                logger.error("%s must be of type %s. Error: %s", var, var_type.__name__, e)
                 raise ValueError(f"{var} must be of type {var_type.__name__}.") from e
         else:
             env_vars[var] = None
@@ -97,12 +103,12 @@ def process_files(github_client, openai_client, pr_id, language, custom_prompt):
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
     """
-    logging.info("Processing files for PR ID: %s", pr_id)
+    logger.info("Processing files for PR ID: %s", pr_id)
     pull_request = github_client.get_pr(pr_id)
     commits = list(pull_request.get_commits())
 
     if not commits:
-        logging.info("No commits found.")
+        logger.info("No commits found.")
         return
 
     last_commit = commits[-1]
@@ -119,10 +125,10 @@ def process_patch(github_client, openai_client, pr_id, language, custom_prompt):
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
     """
-    logging.info("Processing patch for PR ID: %s", pr_id)
+    logger.info("Processing patch for PR ID: %s", pr_id)
     patch_content = github_client.get_pr_patch(pr_id)
     if not patch_content:
-        logging.info("Patch file does not contain any changes.")
+        logger.info("Patch file does not contain any changes.")
         github_client.post_comment(pr_id, "Patch file does not contain any changes")
         return
     analyze_patch(github_client, openai_client, pr_id, patch_content, language, custom_prompt)
@@ -139,12 +145,12 @@ def analyze_commit_files(github_client, openai_client, pr_id, commit, language, 
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
     """
-    logging.info("Analyzing files in commit: %s", commit.sha)
+    logger.info("Analyzing files in commit: %s", commit.sha)
     files = github_client.get_commit_files(commit)
 
     combined_content = ""
     for file in files:
-        logging.info("Processing file: %s", file.filename)
+        logger.info("Processing file: %s", file.filename)
         content = github_client.get_file_content(commit.sha, file.filename)
         combined_content += f"\n### File: {file.filename}\n```{content}```\n"
 
@@ -165,20 +171,20 @@ def analyze_patch(github_client, openai_client, pr_id, patch_content, language, 
         language (str): The language for the review.
         custom_prompt (str, optional): Custom prompt for the code review.
     """
-    logging.info("Analyzing patch content for PR ID: %s", pr_id)
+    logger.info("Analyzing patch content for PR ID: %s", pr_id)
 
     combined_diff = ""
     for diff_text in patch_content.split("diff"):
         if diff_text:
             try:
                 file_name = diff_text.split("b/")[1].splitlines()[0]
-                logging.info("Processing diff for file: %s", file_name)
+                logger.info("Processing diff for file: %s", file_name)
                 combined_diff += f"\n### File: {file_name}\n```diff\n{diff_text}```\n"
             except (TypeError, ValueError) as e:
-                logging.error("Error processing diff for file: %s: %s", file_name, str(e))
+                logger.error("Error processing diff for file: %s: %s", file_name, str(e))
                 github_client.post_comment(
                     pr_id,
-                    f"ChatGPT was unable to process the response about {file_name}: {str(e)}"
+                    f"ChatGPT was unable to process the response about {file_name}: {e!s}"
                 )
 
     review_prompt = create_review_prompt(combined_diff, language, custom_prompt)
@@ -198,7 +204,7 @@ def create_review_prompt(content, language, custom_prompt=None):
         str: The review prompt.
     """
     if custom_prompt:
-        logging.info("Using custom prompt: %s", custom_prompt)
+        logger.info("Using custom prompt: %s", custom_prompt)
         return (
             f"{custom_prompt}\n"
             "### Code\n"
@@ -206,10 +212,12 @@ def create_review_prompt(content, language, custom_prompt=None):
             f"Write this code review in the following {language}:\n\n"
         )
     return (
-        f"Please review the following code for clarity, efficiency, and adherence to best practices."
-        f"Identify any areas for improvement, suggest specific optimizations, and note potential bugs or security vulnerabilities. "
-        f"Additionally, provide suggestions for how to address the identified issues, with a focus on maintainability and scalability. "
-        f"Include examples of code where relevant. Use markdown formatting for your response:\n\n"
+        "Please review the following code for clarity, efficiency, and adherence to "
+        "best practices. Identify any areas for improvement, suggest specific "
+        "optimizations, and note potential bugs or security vulnerabilities. "
+        "Additionally, provide suggestions for how to address the identified issues, "
+        "with a focus on maintainability and scalability. Include examples of code "
+        "where relevant. Use markdown formatting for your response:\n\n"
         f"Write this code review in the following {language}:\n\n"
         f"Do not write the code or guidelines in the review. Only write the review itself.\n\n"
         f"### Code\n```{content}```\n\n"
@@ -221,7 +229,8 @@ def create_review_prompt(content, language, custom_prompt=None):
         f"5. **Maintainability**: Is the code easy to maintain and scale?\n\n"
         f"### Review Example\n"
         f"1. **Issue**: The variable names are not descriptive.\n"
-        f"   **Suggestion**: Use more descriptive variable names that reflect their purpose. For example:\n"
+        "   **Suggestion**: Use more descriptive variable names that reflect their "
+        "purpose. For example:\n"
         f"   ```python\n"
         f"   # Instead of this:\n"
         f"   x = 5\n"

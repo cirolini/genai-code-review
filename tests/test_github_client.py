@@ -1,7 +1,9 @@
-import unittest
-from unittest.mock import patch, MagicMock
-from clients.github_client import GithubClient
 import os
+import unittest
+from unittest.mock import MagicMock, patch
+
+from clients.github_client import GithubClient
+
 
 class TestGithubClient(unittest.TestCase):
 

@@ -1,13 +1,17 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from clients.openai_client import OpenAIClient  # Substitua 'your_module' pelo nome do seu módulo.
+from unittest.mock import MagicMock, patch
+
+from clients.openai_client import OpenAIClient
+
 
 class TestOpenAIClient(unittest.TestCase):
 
     @patch('clients.openai_client.OpenAI')
     def setUp(self, MockOpenAI):
         self.mock_openai = MockOpenAI.return_value
-        self.mock_openai.chat.completions.create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="Test response"))])
+        self.mock_openai.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="Test response"))]
+        )
         self.client = OpenAIClient(model="gpt-3.5-turbo", temperature=0.7, max_tokens=150)
 
     def test_initialization(self):
