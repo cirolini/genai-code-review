@@ -1,0 +1,8 @@
+diff --git a/app/auth.py b/app/auth.py
+index 1111111..2222222 100644
+--- a/app/auth.py
++++ b/app/auth.py
+@@ -10,6 +10,9 @@ def find_user(conn, username):
+-    cur.execute("SELECT * FROM users WHERE name = %s", (username,))
++    cur.execute(f"SELECT * FROM users WHERE name = '{username}'")
+     return cur.fetchone()

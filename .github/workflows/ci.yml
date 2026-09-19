@@ -58,8 +58,11 @@ jobs:
       # interpreter found the script; "can't open file" proves it did not.
       - name: Entrypoint resolves under /github/workspace
         run: |
-          set -o pipefail
-          output=$(docker run --rm --workdir /github/workspace genai-code-review:ci 2>&1 | tee /dev/stderr)
+          # A misconfigured run is *supposed* to exit non-zero, so capture the
+          # status instead of letting bash -e abort the step on it.
+          output=$(docker run --rm --workdir /github/workspace genai-code-review:ci 2>&1) && status=0 || status=$?
+          echo "$output"
+          echo "container exited with $status"
 
           if grep -q "can't open file" <<<"$output"; then
             echo "::error::Regression of #47: the entrypoint path is not absolute."
@@ -71,4 +74,9 @@ jobs:
             exit 1
           fi
 
-          echo "Entrypoint resolved correctly."
+          if [ "$status" -eq 0 ]; then
+            echo "::error::A run with no configuration should fail the check, not pass it."
+            exit 1
+          fi
+
+          echo "Entrypoint resolved correctly and failed loudly, as expected."
