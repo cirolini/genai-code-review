@@ -4,6 +4,13 @@
 
 ### Added
 
+- **Repository configuration.** Settings can live in `.genai-review.yml` at the
+  repository root instead of the workflow file. Action inputs take precedence.
+  There is deliberately no `api_key` key: credentials belong in a secret.
+- Documentation: a rewritten README, `docs/case-study.md`,
+  `docs/migrating-v2-to-v3.md`, `docs/results/`, and a commented
+  `.genai-review.yml.example`.
+
 - **Run log.** Every review writes a JSON artifact with provider, model, tokens,
   estimated cost, latency, findings by severity, posted versus suppressed, and
   what was not reviewed. Never contains the API key, the diff, the code under
