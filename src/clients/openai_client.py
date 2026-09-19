@@ -1,13 +1,14 @@
 """
-Este módulo contém a classe OpenAIClient, que é usada para interagir com a API do OpenAI.
-A classe OpenAIClient pode ser usada para gerar respostas de um modelo especificado do OpenAI.
+Client for the OpenAI API.
+
+Wraps the chat completions endpoint and returns the model's reply as text.
 """
 
 import logging
+
 from openai import OpenAI
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class OpenAIClient:
     """
@@ -16,10 +17,12 @@ class OpenAIClient:
 
     def __init__(self, model, temperature, max_tokens):
         """
-        Initialize the OpenAIClient with API key, model, temperature, and max tokens.
+        Initialize the OpenAIClient with a model, temperature, and token limit.
+
+        The API key is read from the OPENAI_API_KEY environment variable by the
+        OpenAI SDK itself.
 
         Args:
-            api_key (str): The OpenAI API key.
             model (str): The OpenAI model to use.
             temperature (float): The sampling temperature.
             max_tokens (int): The maximum number of tokens to generate.
@@ -29,7 +32,7 @@ class OpenAIClient:
             self.model = model
             self.temperature = temperature
             self.max_tokens = max_tokens
-            logging.info(
+            logger.info(
                 "OpenAI client initialized successfully, "
                 "Model: %s, temperature: %s, max tokens: %s",
                 self.model,
@@ -37,7 +40,7 @@ class OpenAIClient:
                 self.max_tokens
             )
         except Exception as e:
-            logging.error("Error initializing OpenAI client: %s", e)
+            logger.error("Error initializing OpenAI client: %s", e)
             raise
 
     def generate_response(self, prompt):
@@ -54,7 +57,7 @@ class OpenAIClient:
             Exception: If there is an error generating the response.
         """
         try:
-            logging.info("Generating response from OpenAI model.")
+            logger.info("Generating response from OpenAI model.")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -64,8 +67,8 @@ class OpenAIClient:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
             )
-            logging.info("Response generated successfully.")
+            logger.info("Response generated successfully.")
             return response.choices[0].message.content
         except Exception as e:
-            logging.error("Error generating response from OpenAI model: %s", e)
+            logger.error("Error generating response from OpenAI model: %s", e)
             raise

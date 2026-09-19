@@ -1,14 +1,14 @@
 """
-Este módulo contém funções auxiliares para o projeto.
-Este módulo fornece uma função para recuperar variáveis de ambiente e garantir que elas não 
-estejam vazias, se necessário.
+Helper functions.
+
+Provides a single helper for reading environment variables and enforcing that
+required ones are present and non-empty.
 """
 
-import os
 import logging
+import os
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def get_env_variable(key, required=True):
     """
@@ -24,10 +24,10 @@ def get_env_variable(key, required=True):
     Raises:
         ValueError: If the environment variable is required and missing or empty.
     """
-    logging.info("Retrieving environment variable: %s", key)
+    logger.info("Retrieving environment variable: %s", key)
     value = os.getenv(key)
     if required and not value:
-        logging.error("Missing required environment variable: %s", key)
+        logger.error("Missing required environment variable: %s", key)
         raise ValueError(f"Missing required environment variable: {key}")
-    logging.info("Successfully retrieved environment variable: %s", key)
+    logger.info("Successfully retrieved environment variable: %s", key)
     return value
