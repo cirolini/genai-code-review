@@ -4,6 +4,22 @@
 
 ### Added
 
+- **`mode: review`** — structured findings posted as inline comments on the
+  right diff lines, grouped into a single review. `files` and `patch` keep
+  doing exactly what they did in v2, so no existing workflow changes behaviour.
+- **Schema-validated model output.** Findings carry file, line range, severity
+  (`blocker`/`major`/`minor`/`nit`), category, confidence, title, rationale and
+  an optional suggestion. Providers that support structured output natively are
+  asked to use it; otherwise output is validated and the model gets exactly one
+  repair attempt with a specific list of what was wrong.
+- **A real diff parser.** v2 split the patch on the bare substring `diff`,
+  which also split on the word wherever it appeared in the code under review —
+  the cause of issue #28.
+- **Prompt-injection defences.** The diff is delimited by a per-call random
+  sentinel it cannot forge, the instructions come after the data, and the model
+  is told the diff is untrusted and that injection attempts are themselves
+  reportable.
+
 - **Multi-provider support.** `provider` selects OpenAI, Anthropic, Google
   Gemini, or any OpenAI-compatible server (Ollama, vLLM, Azure OpenAI,
   OpenRouter) via `base_url`. New inputs: `provider`, `model`, `api_key`,
