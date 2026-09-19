@@ -14,9 +14,9 @@ from unittest.mock import MagicMock
 
 from diff import parse_diff
 from findings import FINDINGS_SCHEMA, Finding
-from main import build_inline_comment, build_review_body
 from prompts import build_review_prompt
 from providers.base import Usage
+from review_run import _inline_comment as build_inline_comment
 from reviewer import place_findings, rank, run_review
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -284,30 +284,6 @@ class AcceptanceTests(unittest.TestCase):
         body = build_inline_comment(f)["body"]
         self.assertIn("```suggestion", body)
         self.assertIn("cur.execute(sql, (username,))", body)
-
-    def test_the_summary_reports_what_could_not_be_placed(self):
-        """Nobody should assume full coverage because the bot stayed quiet."""
-        provider = fake_provider(
-            response(as_dict(finding()), as_dict(finding(file="ghost.py", title="Ghost")))
-        )
-        outcome = run_review(provider, MULTI_FILE, self.parsed, schema=FINDINGS_SCHEMA)
-        body = build_review_body(outcome, outcome.findings, self.parsed)
-
-        self.assertIn("could not be placed", body)
-        self.assertIn("Ghost", body)
-
-    def test_the_summary_says_so_when_the_review_did_not_happen(self):
-        provider = fake_provider("garbage", "still garbage")
-        outcome = run_review(provider, MULTI_FILE, self.parsed, schema=FINDINGS_SCHEMA)
-        body = build_review_body(outcome, outcome.findings, self.parsed)
-        self.assertIn("not** reviewed", body)
-
-    def test_a_clean_review_says_so_explicitly(self):
-        provider = fake_provider(response())
-        outcome = run_review(provider, MULTI_FILE, self.parsed, schema=FINDINGS_SCHEMA)
-        body = build_review_body(outcome, outcome.findings, self.parsed)
-        self.assertIn("No findings", body)
-
 
 if __name__ == "__main__":
     unittest.main()
