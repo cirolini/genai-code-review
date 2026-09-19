@@ -1,0 +1,36 @@
+diff --git a/app/auth.py b/app/auth.py
+index 1111111..2222222 100644
+--- a/app/auth.py
++++ b/app/auth.py
+@@ -8,7 +8,9 @@ import sqlite3
+ 
+ def find_user(conn, username):
+     cur = conn.cursor()
+-    cur.execute("SELECT * FROM users WHERE name = %s", (username,))
++    query = f"SELECT * FROM users WHERE name = '{username}'"
++    cur.execute(query)
+     return cur.fetchone()
+ 
+ 
+diff --git a/app/cache.py b/app/cache.py
+index 3333333..4444444 100644
+--- a/app/cache.py
++++ b/app/cache.py
+@@ -40,3 +40,6 @@ class Cache:
+     def get(self, key):
+         return self._store.get(key)
++
++    def put(self, key, value):
++        self._store[key] = value
+diff --git a/logo.png b/logo.png
+index 5555555..6666666 100644
+Binary files a/logo.png and b/logo.png differ
+diff --git a/old/legacy.py b/old/legacy.py
+deleted file mode 100644
+index 7777777..0000000
+--- a/old/legacy.py
++++ /dev/null
+@@ -1,3 +0,0 @@
+-def old_thing():
+-    pass
+-
