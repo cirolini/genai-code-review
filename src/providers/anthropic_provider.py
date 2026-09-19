@@ -24,11 +24,18 @@ class AnthropicProvider(LLMProvider):
         )
 
     def _complete(self, prompt: str, schema: dict | None) -> tuple[str, Usage]:
+        kwargs = {}
+        if schema is not None:
+            kwargs["output_config"] = {
+                "format": {"type": "json_schema", "schema": schema}
+            }
+
         response = self._client().messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
+            **kwargs,
         )
         # content is a list of blocks; only the text ones matter here.
         text = "".join(

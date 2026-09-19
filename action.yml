@@ -50,7 +50,7 @@ inputs:
     required: false
     default: ""
   mode:
-    description: "The mode of operation for the action. Options: 'files' to review file changes, 'patch' to review the patch changes."
+    description: "How to review. 'review' posts inline comments on the diff (v3). 'files' and 'patch' keep the v2 single-comment behaviour."
     required: false
     default: "files"
   language:

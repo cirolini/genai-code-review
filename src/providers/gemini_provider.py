@@ -21,14 +21,19 @@ class GeminiProvider(LLMProvider):
     def _complete(self, prompt: str, schema: dict | None) -> tuple[str, Usage]:
         from google.genai import types
 
+        config_kwargs = {
+            "system_instruction": SYSTEM_PROMPT,
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_tokens,
+        }
+        if schema is not None:
+            config_kwargs["response_mime_type"] = "application/json"
+            config_kwargs["response_schema"] = schema
+
         response = self._client().models.generate_content(
             model=self.model,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=self.temperature,
-                max_output_tokens=self.max_tokens,
-            ),
+            config=types.GenerateContentConfig(**config_kwargs),
         )
         metadata = getattr(response, "usage_metadata", None)
         usage = Usage(

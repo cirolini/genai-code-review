@@ -27,6 +27,8 @@ class GithubClient:
         """
         try:
             self.client = Github(token)
+            self.token = token
+            self.api_root = os.getenv("GITHUB_API_URL", "https://api.github.com").rstrip("/")
             self.repo_name = os.getenv('GITHUB_REPOSITORY')
             self.repo = self.client.get_repo(self.repo_name)
             logger.info("Initialized GitHub client for repository: %s", self.repo_name)
@@ -91,6 +93,55 @@ class GithubClient:
             logger.error("Error posting comment to PR ID %s: %s", pr_id, e)
             raise
 
+    def create_review(self, pr_id, comments, body):
+        """
+        Post one review containing every inline comment.
+
+        Deliberately a single review rather than N individual comments: GitHub
+        sends a notification per comment, so nine separate comments is nine
+        emails for one pass over a pull request. Grouping them is the first and
+        cheapest thing this tool does to reduce the load on the reviewer.
+
+        Uses the REST API directly rather than PyGithub so that comments can be
+        addressed with `line`/`side`, which are line numbers in the new file.
+        PyGithub's wrapper expects `position`, an offset into the diff that has
+        to be computed and is easy to get subtly wrong.
+
+        Args:
+            pr_id (int): The pull request number.
+            comments (list): Dicts with `path`, `line`, optional `start_line`,
+                and `body`.
+            body (str): The review's summary body.
+
+        Returns:
+            dict: The created review, or None if there was nothing to post.
+        """
+        url = f"{self.api_root}/repos/{self.repo_name}/pulls/{pr_id}/reviews"
+        payload = {"body": body, "event": "COMMENT"}
+        if comments:
+            payload["comments"] = comments
+
+        try:
+            response = requests.post(
+                url, headers=self._api_headers(), json=payload, timeout=60
+            )
+            response.raise_for_status()
+            logger.info(
+                "Posted review with %d inline comment(s) to PR %s", len(comments), pr_id
+            )
+            return response.json()
+        except requests.RequestException as e:
+            detail = getattr(e.response, "text", "")[:500] if e.response is not None else ""
+            logger.error("Error posting review to PR %s: %s %s", pr_id, e, detail)
+            raise
+
+    def _api_headers(self):
+        return {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
     def get_commit_files(self, commit):
         """
         Retrieve the files modified in a commit.
@@ -144,10 +195,11 @@ class GithubClient:
             str: The patch content of the pull request.
         """
         try:
-            url = f"https://api.github.com/repos/{self.repo_name}/pulls/{pr_id}"
+            url = f"{self.api_root}/repos/{self.repo_name}/pulls/{pr_id}"
             headers = {
-                'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
-                'Accept': 'application/vnd.github.v3.diff'
+                "Authorization": f"Bearer {self.token}",
+                "Accept": "application/vnd.github.v3.diff",
+                "X-GitHub-Api-Version": "2022-11-28",
             }
             response = requests.get(url, headers=headers, timeout=60)
             response.raise_for_status()
