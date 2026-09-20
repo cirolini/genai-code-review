@@ -45,6 +45,12 @@ max_tokens: 2048
 # Run two providers and merge their findings. Findings both report rank
 # higher; findings only one reports are demoted. Roughly doubles cost and
 # latency, so measure before leaving it on — see docs/results/.
+#
+# Each member needs its own key. The api_key input reaches the first member
+# only; the rest read GEMINI_API_KEY / ANTHROPIC_API_KEY from the workflow's
+# env, and the run fails at startup if one is missing. OpenAI has to be the
+# first member: the action sets OPENAI_API_KEY from its own deprecated input,
+# which overwrites anything passed through env.
 # panel:
 #   - openai
 #   - anthropic
