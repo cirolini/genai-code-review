@@ -155,7 +155,7 @@ secret.
 | `language` | `en` | Language the findings are written in |
 | `custom_prompt` | — | Extra instructions for the reviewer |
 | `temperature` | `0.5` | Sampling temperature |
-| `max_tokens` | `2048` | Response length cap |
+| `max_tokens` | `8192` | Response length cap. Below ~4000 a large review truncates and is lost |
 | `config_path` | `.genai-review.yml` | Repository config file |
 | `runlog_path` | `genai-review-runlog.json` | Where the per-run JSON log is written |
 

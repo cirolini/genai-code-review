@@ -322,3 +322,32 @@ class TransientClassificationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DefaultResponseCapTests(unittest.TestCase):
+    """
+    The default `max_tokens` has to hold a full-sized review.
+
+    This is not a taste setting. Structured output is all-or-nothing: if the
+    response is cut off mid-JSON, the provider rejects the entire generation
+    and the pull request gets no review at all — with a 400 that says "Please
+    adjust your prompt" and points nowhere near the cause.
+
+    Measured on a 15-file pull request with ten seeded defects: 2048 returned
+    a 400 and nothing else, 8192 returned 11 findings in 3426 output tokens.
+    A review that fills the default comment budget needs roughly 350 output
+    tokens per finding, so anything under ~4000 puts the failure back within
+    reach of an ordinary pull request.
+    """
+
+    def test_the_default_holds_a_review_that_fills_the_comment_budget(self):
+        self.assertGreaterEqual(config.DEFAULT_MAX_TOKENS, 4096)
+
+    def test_a_provider_built_without_one_gets_the_default(self):
+        provider = build_provider("openai", api_key="k")
+        self.assertEqual(provider.max_tokens, config.DEFAULT_MAX_TOKENS)
+
+    def test_an_explicit_value_still_wins(self):
+        """Lowering it is a supported choice; inheriting a broken one is not."""
+        provider = build_provider("openai", api_key="k", max_tokens=512)
+        self.assertEqual(provider.max_tokens, 512)

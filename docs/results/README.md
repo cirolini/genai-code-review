@@ -140,8 +140,10 @@ breaks on, and the error a user sees — "Please adjust your prompt" — points
 nowhere near the cause. The measurement above therefore used
 `--max-tokens 8192`.
 
-Raising the default is a behaviour change on every existing workflow's bill,
-so it is not made here.
+**The default is now 8192.** A cap is not a purchase: a review that produces
+four findings bills four findings at either setting. The cost only moves for
+reviews whose output was previously being cut off — and those were not
+producing a review at all.
 
 ## Limits
 

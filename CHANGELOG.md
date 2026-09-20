@@ -20,15 +20,19 @@
   a "What reached the reviewer" table with the second pair. The published
   small-suite numbers are unaffected.
 
-### Known issue
+### Changed
 
-- **The default `max_tokens` of 2048 loses large reviews.** Ten findings with
-  rationales do not fit, the response truncates mid-JSON, and structured
-  output then fails validation at the provider — the user sees a 400 saying
-  "Please adjust your prompt". The pull requests the comment budget exists for
-  are exactly the ones this breaks on. Documented in `docs/results/` with the
-  measurement; raising the default changes every existing workflow's bill, so
-  it is not changed here.
+- **The default `max_tokens` is now 8192** (was 2048). Ten findings with
+  rationales do not fit in 2048: the response truncates mid-JSON, structured
+  output then fails validation at the provider, and the pull request gets no
+  review at all — with a 400 saying "Please adjust your prompt", which points
+  nowhere near the cause. Measured on a 15-file pull request: 2048 returned
+  nothing, 8192 returned 11 findings in 3426 output tokens. The pull requests
+  the comment budget exists for were exactly the ones this broke on.
+
+  This does not raise the cost of a review that was already working. A cap is
+  not a purchase — a review producing four findings bills four findings at
+  either setting. Pass `max_tokens` to set it back.
 
 ## v3.0.0 — 2026-09-19
 

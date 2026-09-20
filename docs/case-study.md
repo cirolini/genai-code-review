@@ -385,13 +385,12 @@ request, and I did not know that until I made one.
 
 ## What I would do next
 
-**Decide what to do about the response cap.** The default `max_tokens` of 2048
-cannot hold ten findings with rationales, so the response truncates, structured
-output fails validation, and a large pull request gets no review at all with an
-error that points nowhere near the cause. Raising the default changes every
-existing workflow's bill, so the alternatives — detect the truncation and say
-so, or size the cap from the diff — need thinking about rather than a one-line
-change.
+**Report truncation as truncation.** The default cap is now 8192, which holds
+a full-sized review, but the underlying failure mode has not gone away — it has
+moved further out. A pull request large enough to exhaust any cap still fails
+with a provider 400 saying "Please adjust your prompt", which is nobody's idea
+of an actionable error. The action should recognise a truncated generation and
+say so, the way it already does for every other provider failure.
 
 **Filter on merit, not only on volume.** The budget cut true positives and left
 false positives alone, because noise on a quiet diff never competes for the
