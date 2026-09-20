@@ -294,7 +294,7 @@ def _resolved(mode="files"):
         "API_KEY": "key",
         "BASE_URL": None,
         "TEMPERATURE": 0.5,
-        "MAX_TOKENS": 2048,
+        "MAX_TOKENS": 8192,
         "MODE": mode,
         "LANGUAGE": "en",
         "CUSTOM_PROMPT": None,

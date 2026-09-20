@@ -51,7 +51,18 @@ API_KEY_ENV_VARS = {
 DEFAULT_PROVIDER = GEMINI
 
 DEFAULT_TEMPERATURE = 0.5
-DEFAULT_MAX_TOKENS = 2048
+
+# Sized for the case this tool is built around, not for the common one. Ten
+# findings with rationales do not fit in 2048 tokens: the response truncates
+# mid-JSON, structured output then fails validation at the provider, and the
+# review is lost to a 400 that says "Please adjust your prompt". Measured on a
+# 15-file pull request — 2048 returned nothing at all, 8192 returned 11
+# findings in 3426 output tokens. See docs/results/.
+#
+# This is a cap, not a purchase. A review that produces four findings bills
+# four findings either way; the cost only moves where output was previously
+# being cut off, and those reviews were failing.
+DEFAULT_MAX_TOKENS = 8192
 
 # Per-request timeout, in seconds.
 DEFAULT_TIMEOUT = 120.0
