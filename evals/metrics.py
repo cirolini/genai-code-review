@@ -20,6 +20,10 @@ class CaseResult:
     missed: list = field(default_factory=list)
     spurious: list = field(default_factory=list)
     posted_count: int = 0
+    # The same two counts, restricted to the findings that survived the budget
+    # and actually reached the pull request.
+    posted_found: int = 0
+    posted_spurious: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
     latency_s: float = 0.0
@@ -59,6 +63,37 @@ class Scores:
         if not p or not r:
             return None
         return 2 * p * r / (p + r)
+
+    @property
+    def posted_true_positives(self) -> int:
+        return sum(c.posted_found for c in self.cases)
+
+    @property
+    def posted_false_positives(self) -> int:
+        return sum(c.posted_spurious for c in self.cases)
+
+    @property
+    def posted_precision(self) -> float | None:
+        """
+        Of the comments the reviewer actually received, how many were real.
+
+        This is the number the comment budget is trying to move. Precision over
+        all findings says how good the model is; this says how good the review
+        was.
+        """
+        denominator = self.posted_true_positives + self.posted_false_positives
+        return self.posted_true_positives / denominator if denominator else None
+
+    @property
+    def posted_recall(self) -> float | None:
+        """
+        Seeded defects that reached the reviewer.
+
+        Expected to sit below `recall` whenever the budget binds: that gap is
+        the cost of the budget, and it is the thing worth arguing about.
+        """
+        denominator = self.true_positives + self.false_negatives
+        return self.posted_true_positives / denominator if denominator else None
 
     @property
     def noise_rate(self) -> float | None:
@@ -101,14 +136,39 @@ class Scores:
         return sum(1 for c in self.cases if c.error)
 
 
+def _match_defects(expected, findings):
+    """
+    Pair seeded defects with the findings that hit them.
+
+    Returns (pairs, missed defects, findings that matched nothing).
+    """
+    unmatched = list(findings)
+    pairs, missed = [], []
+    for defect in expected:
+        hit = next((f for f in unmatched if matches(f, defect)), None)
+        if hit is None:
+            missed.append(defect)
+        else:
+            unmatched.remove(hit)
+            pairs.append((defect, hit))
+    return pairs, missed, unmatched
+
+
 def score_case(case, findings, posted, usage_in=0, usage_out=0, latency=0.0, cost=None):
     """
-    Compare one case's findings against its seeded defects.
+    Compare one case's findings against its seeded defects, twice.
 
     `findings` is everything the reviewer produced; `posted` is what survived
-    the comment budget. Recall is measured against `findings` — did the model
-    see it at all — while noise is measured against `posted`, since that is
-    what actually reaches the human.
+    the comment budget. Both are scored, because they answer different
+    questions and the gap between them is the budget's entire effect:
+
+    - against `findings`: did the model see the defect at all?
+    - against `posted`: did the *reviewer* see it?
+
+    Scoring only the first, which is what this did until the budget had
+    fixtures large enough to bind on, makes a budgeted run and an unbudgeted
+    one identical by construction — the numbers cannot move, because nothing
+    in them depends on what was posted.
     """
     result = CaseResult(
         name=case.name,
@@ -120,14 +180,10 @@ def score_case(case, findings, posted, usage_in=0, usage_out=0, latency=0.0, cos
         cost_usd=cost,
     )
 
-    unmatched = list(findings)
-    for defect in case.expected:
-        hit = next((f for f in unmatched if matches(f, defect)), None)
-        if hit is None:
-            result.missed.append(defect)
-        else:
-            unmatched.remove(hit)
-            result.found.append((defect, hit))
+    result.found, result.missed, result.spurious = _match_defects(case.expected, findings)
 
-    result.spurious = unmatched
+    posted_found, _, posted_spurious = _match_defects(case.expected, posted)
+    result.posted_found = len(posted_found)
+    result.posted_spurious = len(posted_spurious)
+
     return result

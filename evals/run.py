@@ -115,6 +115,16 @@ def main(argv=None):
     parser.add_argument("--min-confidence", type=float, default=0.0)
     parser.add_argument("--only", default=None, help="Comma-separated case names")
     parser.add_argument(
+        "--suite",
+        default="small",
+        choices=("small", "large", "all"),
+        help=(
+            "small: the 21 single-file fixtures the published results use. "
+            "large: composed multi-file pull requests, where the comment budget binds. "
+            "all: both, which double-counts defects and is only useful for a smoke test."
+        ),
+    )
+    parser.add_argument(
         "--compare-budget",
         action="store_true",
         help="Also score the same run with the comment budget removed",
@@ -131,7 +141,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     only = set(args.only.split(",")) if args.only else None
-    cases = load_cases(only=only)
+    cases = load_cases(only=only, suite=None if args.suite == "all" else args.suite)
     if not cases:
         print("No cases matched.", file=sys.stderr)
         return 1
@@ -178,6 +188,10 @@ def main(argv=None):
         for case_result in scores.cases:
             copy = type(case_result)(**vars(case_result))
             copy.posted_count = len(case_result.found) + len(case_result.spurious)
+            # Without a budget, everything the model produced reaches the
+            # reviewer, so the posted counts collapse onto the raw ones.
+            copy.posted_found = len(case_result.found)
+            copy.posted_spurious = len(case_result.spurious)
             unbudgeted.cases.append(copy)
         rows.append((f"{label} (no budget)", unbudgeted))
 

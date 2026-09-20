@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A large eval suite.** `--suite large` runs multi-file pull requests
+  composed from the labelled fixtures: `large_mixed_pr` (15 files, 10 seeded
+  defects) and `large_clean_pr` (6 files, nothing wrong). The comment budget
+  cannot bind on a single-file fixture, so until now it was never exercised.
+  `--suite small`, the 21 published fixtures, stays the default.
+
+### Fixed
+
+- **The comment budget was unmeasurable.** Precision and recall were computed
+  over every finding the model produced, and the budget changes only what is
+  posted — so a budgeted and an unbudgeted run were identical by construction,
+  on any fixture of any size. Scoring now runs twice, once against everything
+  found and once against what reached the pull request, and the report carries
+  a "What reached the reviewer" table with the second pair. The published
+  small-suite numbers are unaffected.
+
 ## v3.0.0 — 2026-09-19
 
 ### Fixed

@@ -6,6 +6,7 @@ PIP  := $(VENV)/bin/pip
 
 PROVIDER ?= openai
 MODEL    ?=
+SUITE    ?= small
 RESULTS  ?= docs/results
 
 .PHONY: help venv install lint test check eval eval-dry eval-compare clean
@@ -17,7 +18,7 @@ help:
 	@echo "make check         lint + test"
 	@echo "make eval-dry      list the eval cases without calling any provider"
 	@echo "make eval          run the eval set (costs money; needs an API key)"
-	@echo "make eval-compare  eval with and without the comment budget"
+	@echo "make eval-compare  eval with and without the comment budget (large suite)"
 
 $(VENV):
 	python3 -m venv $(VENV)
@@ -36,20 +37,23 @@ test: venv
 check: lint test
 
 eval-dry: venv
-	$(PY) -m evals.run --dry-run
+	$(PY) -m evals.run --dry-run --suite $(SUITE)
 
 # Writes a Markdown table to docs/results/. Sends one request per fixture, so
 # this costs real money — see the printed request count before it starts.
 eval: venv
 	@mkdir -p $(RESULTS)
 	$(PY) -m evals.run --provider $(PROVIDER) $(if $(MODEL),--model $(MODEL),) \
+		--suite $(SUITE) \
 		--out $(RESULTS)/$(PROVIDER).md \
 		--json-out $(RESULTS)/$(PROVIDER).json
 
+# The budget cannot bind on the small fixtures — none of them produces more
+# than max_comments findings — so this runs the composed multi-file cases.
 eval-compare: venv
 	@mkdir -p $(RESULTS)
 	$(PY) -m evals.run --provider $(PROVIDER) $(if $(MODEL),--model $(MODEL),) \
-		--compare-budget \
+		--suite large --compare-budget \
 		--out $(RESULTS)/$(PROVIDER)-budget-comparison.md
 
 clean:

@@ -1,0 +1,22 @@
+{
+  "name": "large_mixed_pr",
+  "suite": "large",
+  "note": "Fifteen files, ten seeded defects, five changes that are fine. More findings than max_comments will post, so the budget has to rank rather than pass everything through. This is the case the small fixtures cannot produce.",
+  "compose": [
+    "sql_injection",
+    "command_injection",
+    "leaked_secret",
+    "path_traversal",
+    "race_condition",
+    "n_plus_one",
+    "off_by_one",
+    "missing_null_check",
+    "resource_leak",
+    "swallowed_exception",
+    "clean_rename",
+    "clean_import_sort",
+    "clean_docstring",
+    "clean_typing",
+    "clean_test_added"
+  ]
+}

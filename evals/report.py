@@ -73,8 +73,53 @@ def detail(scores) -> str:
     return "\n".join(lines)
 
 
+def budget_table(rows) -> str:
+    """
+    What the reviewer actually received, as opposed to what the model produced.
+
+    Separate from `summary_table` because it answers a different question.
+    Precision there is a property of the model; precision here is a property of
+    the review, and the comment budget only moves the second one.
+    """
+    header = (
+        "| Configuration | Findings | Posted | Suppressed | "
+        "Posted precision | Posted recall |\n"
+        "|---|---|---|---|---|---|"
+    )
+    lines = [header]
+    for label, scores in rows:
+        findings = scores.true_positives + scores.false_positives
+        posted = sum(case.posted_count for case in scores.cases)
+        lines.append(
+            f"| {label} | {findings} | {posted} | {max(findings - posted, 0)} | "
+            f"{_pct(scores.posted_precision)} | {_pct(scores.posted_recall)} |"
+        )
+    return "\n".join(lines)
+
+
+def _budget_bound(rows) -> bool:
+    """True when at least one configuration held something back."""
+    return any(
+        (scores.true_positives + scores.false_positives)
+        > sum(case.posted_count for case in scores.cases)
+        for _, scores in rows
+    )
+
+
 def full_report(title, rows, primary=None) -> str:
     parts = [f"# {title}", "", summary_table(rows)]
+
+    if _budget_bound(rows):
+        parts += ["", "## What reached the reviewer", "", budget_table(rows)]
+    else:
+        parts += [
+            "",
+            "The comment budget never bound: every finding fit inside "
+            "`max_comments`, so what the reviewer received is what the model "
+            "produced and the table above describes both. Run `--suite large` "
+            "for cases with more findings than the budget will post.",
+        ]
+
     if primary is not None:
         label, scores = primary
         parts += ["", f"## Per case — {label}", "", per_case_table(scores), detail(scores)]

@@ -49,16 +49,44 @@ doing it.
 A stronger model appears to resist this. A weaker one does not, and no amount
 of prompt wording fixed it in these runs.
 
-## What the budget comparison shows: nothing, yet
+## What the budget comparison showed: nothing, and why
 
-`--compare-budget` produced identical rows for both models. Neither ever
-produced more than five findings on a single fixture, so `max_comments: 5`
-never bound.
+`--compare-budget` produced identical rows for both models. Two separate
+problems were hiding behind that one null result.
 
-That is an honest null result rather than a vindication. These fixtures are
-small — one file, a handful of lines. The budget is designed for a forty-file
-pull request, and this eval set cannot exercise it. Measuring it properly needs
-fixtures an order of magnitude larger, which is the obvious next thing to build.
+**The fixtures were too small.** Neither model ever produced more than five
+findings on a single-file diff, so `max_comments: 5` never bound. There is now
+a second suite for this — `--suite large` — where each case is a multi-file
+pull request composed from the labelled fixtures: `large_mixed_pr` is 15 files
+with 10 seeded defects, and `large_clean_pr` is 6 files where the right answer
+is still silence. The small suite is unchanged and remains the default, so the
+table above stays reproducible.
+
+**The metrics could not have moved anyway.** Precision and recall were
+computed over every finding the model produced, and the budget does not change
+what the model produces — only what gets posted. So a budgeted run and an
+unbudgeted one were identical by construction, on any fixture, of any size.
+Scoring now happens twice: once against everything found, and once against
+what survived the budget and reached the pull request. The gap between the two
+is the budget's entire effect.
+
+Against a stub reviewer that reports all ten seeded defects plus five
+confident nits, the two scorings separate exactly as the design predicts:
+
+| | Precision | Recall |
+|---|---|---|
+| What the model found | 67% | 100% |
+| What the reviewer received | 100% | 50% |
+
+That is the trade the budget makes, stated plainly: every comment that arrives
+is real, and half the defects never arrive. Whether that is the right trade is
+a judgement, not a measurement — but it is now a judgement made against
+numbers.
+
+**This has not yet been run against a real model.** The numbers above come
+from a stub with scripted output, which proves the harness measures the right
+thing and proves nothing about any provider. `make eval-compare` on the large
+suite is two requests and needs a key.
 
 ## Limits
 
@@ -82,7 +110,8 @@ unknown variance.
 ```bash
 make install
 export GEMINI_API_KEY=...
-make eval PROVIDER=gemini
+make eval PROVIDER=gemini              # the 21 small fixtures, as published
+make eval-compare PROVIDER=gemini      # the large suite, with and without the budget
 ```
 
 Each run sends one request per fixture — 21 requests — and prints the count
