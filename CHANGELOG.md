@@ -9,6 +9,12 @@
   defects) and `large_clean_pr` (6 files, nothing wrong). The comment budget
   cannot bind on a single-file fixture, so until now it was never exercised.
   `--suite small`, the 21 published fixtures, stays the default.
+- **Acceptance signal.** `python -m evals.feedback --repo owner/name` (also
+  `make feedback`) reads a repository the action has run on and reports what
+  reviewers did with its comments: 👍/👎 reactions, replies, thread resolution,
+  and the share nobody engaged with. Read-only, no model call. The signals are
+  reported separately rather than averaged — a resolved thread means the
+  conversation ended, not that the finding was right.
 
 ### Fixed
 

@@ -9,7 +9,9 @@ MODEL    ?=
 SUITE    ?= small
 RESULTS  ?= docs/results
 
-.PHONY: help venv install lint test check eval eval-dry eval-compare clean
+REPO ?= cirolini/genai-code-review
+
+.PHONY: help venv install lint test check eval eval-dry eval-compare feedback clean
 
 help:
 	@echo "make install       install runtime and dev dependencies"
@@ -19,6 +21,7 @@ help:
 	@echo "make eval-dry      list the eval cases without calling any provider"
 	@echo "make eval          run the eval set (costs money; needs an API key)"
 	@echo "make eval-compare  eval with and without the comment budget (large suite)"
+	@echo "make feedback      what reviewers did with the comments (REPO=owner/name)"
 
 $(VENV):
 	python3 -m venv $(VENV)
@@ -55,6 +58,11 @@ eval-compare: venv
 	$(PY) -m evals.run --provider $(PROVIDER) $(if $(MODEL),--model $(MODEL),) \
 		--suite large --compare-budget \
 		--out $(RESULTS)/$(PROVIDER)-budget-comparison.md
+
+# Reads reactions, replies and thread resolution on comments the action has
+# already posted. Read-only, and free: no model is called.
+feedback: venv
+	$(PY) -m evals.feedback --repo $(REPO)
 
 clean:
 	rm -rf $(VENV) .pytest_cache **/__pycache__

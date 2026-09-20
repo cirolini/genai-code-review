@@ -22,16 +22,24 @@ jobs:
       # src/main.py made the old relative CMD work in this repository while it
       # failed everywhere else (issue #47). Without the checkout, this job
       # exercises the same code path an external user gets.
+      # Pinned to v3, which is what this repository ships. It was pinned to v2
+      # while asking for `mode: review`, an input v2 does not have, so every
+      # run since the v3 work began died with "Invalid mode. Choose either
+      # 'files' or 'patch'." A repository whose own review bot cannot start is
+      # not a demonstration of anything.
+      #
+      # The provider is OpenAI because OPENAI_API_KEY is the secret this
+      # repository has. Gemini is the default in v3 and the configuration with
+      # measured numbers behind it (docs/results/); moving this workflow to it
+      # needs a GEMINI_API_KEY secret added here first.
       - name: GenAI Code Review
-        uses: cirolini/genai-code-review@v2
+        uses: cirolini/genai-code-review@v3
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          provider: openai
+          api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_pr_id: ${{ github.event.pull_request.number }}
           mode: review
-          openai_model: "gpt-5.6-luna"
-          openai_temperature: 0.5
-          openai_max_tokens: 2048
 
       # Keeps a record of cost, coverage and what was suppressed, so claims
       # about the tool can be checked rather than asserted.

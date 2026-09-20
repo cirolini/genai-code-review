@@ -417,8 +417,11 @@ ranking should drop it.
 
 **Learn from what reviewers do with the comments.** Reactions and resolved
 threads on the bot's comments are a free signal about which findings were worth
-posting. That is the honest way to tune the budget — from what people accepted,
-not from what I guessed.
+posting, and the honest way to tune the budget: from what people accepted, not
+from what I guessed. `python -m evals.feedback` reads them. It has nothing to
+report yet, because v3 has not been running anywhere long enough to have
+produced comments for anyone to react to — which is the point at which this
+stops being a design argument and starts being an observation.
 
 **Let severity thresholds vary by path.** A `blocker` in an auth module and a
 `blocker` in a build script are not the same thing, and `min_severity` is
