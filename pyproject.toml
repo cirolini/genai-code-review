@@ -1,6 +1,6 @@
 [project]
 name = "genai-code-review"
-version = "2.1.0"
+version = "3.0.0"
 description = "GitHub Action that reviews pull request diffs with an LLM and posts the comments on the PR"
 requires-python = ">=3.12"
 
