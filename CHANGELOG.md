@@ -20,6 +20,16 @@
   a "What reached the reviewer" table with the second pair. The published
   small-suite numbers are unaffected.
 
+### Known issue
+
+- **The default `max_tokens` of 2048 loses large reviews.** Ten findings with
+  rationales do not fit, the response truncates mid-JSON, and structured
+  output then fails validation at the provider — the user sees a 400 saying
+  "Please adjust your prompt". The pull requests the comment budget exists for
+  are exactly the ones this breaks on. Documented in `docs/results/` with the
+  measurement; raising the default changes every existing workflow's bill, so
+  it is not changed here.
+
 ## v3.0.0 — 2026-09-19
 
 ### Fixed

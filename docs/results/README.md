@@ -70,23 +70,78 @@ Scoring now happens twice: once against everything found, and once against
 what survived the budget and reached the pull request. The gap between the two
 is the budget's entire effect.
 
-Against a stub reviewer that reports all ten seeded defects plus five
-confident nits, the two scorings separate exactly as the design predicts:
+## The budget, measured — and it did not do what I expected
+
+Measured on 2026-09-20, `gpt-oss-120b` via Groq, `--suite large`, two cases.
+Full output in [`groq-gpt-oss-120b-large.md`](groq-gpt-oss-120b-large.md).
 
 | | Precision | Recall |
 |---|---|---|
-| What the model found | 67% | 100% |
-| What the reviewer received | 100% | 50% |
+| What the model found | 83% | 100% |
+| What the reviewer received (budget 5) | **71%** | 50% |
+| What the reviewer received (no budget) | 83% | 100% |
 
-That is the trade the budget makes, stated plainly: every comment that arrives
-is real, and half the defects never arrive. Whether that is the right trade is
-a judgement, not a measurement — but it is now a judgement made against
-numbers.
+**The budget made the aggregate precision worse.** That is the opposite of the
+result the design predicts, and the reason is worth more than the number.
 
-**This has not yet been run against a real model.** The numbers above come
-from a stub with scripted output, which proves the harness measures the right
-thing and proves nothing about any provider. `make eval-compare` on the large
-suite is two requests and needs a key.
+Per case:
+
+| Case | Findings | Real | Spurious | Posted |
+|---|---|---|---|---|
+| `large_mixed_pr` (10 seeded) | 10 | 10 | 0 | 5 |
+| `large_clean_pr` (clean) | 2 | 0 | 2 | 2 |
+
+On the 15-file pull request the model found **all ten** seeded defects and
+invented nothing. The budget then cut five of them. On the clean pull request
+it invented two problems, and the budget cut neither — with only two findings,
+the cap never came near binding.
+
+So on this run the budget removed exclusively true positives and left every
+false positive in place. **A cap on volume does nothing about a review that is
+entirely noise**, because noise on a quiet diff is not competing with anything
+for the slots.
+
+This does not make the budget worthless: five comments instead of ten on a
+large pull request is genuinely less attention spent, which is the thing it
+was built to manage. But the claim it was *also* raising the quality of what
+gets through does not survive contact with this eval. Precision at the
+reviewer is governed by `min_confidence` and `min_severity` — the filters that
+act on a finding's own merits — not by a cap that only engages when findings
+are plentiful.
+
+Two caveats before anyone leans on this. It is one run of two cases, which is
+not a basis for a strong claim in either direction. And `gpt-oss-120b` is the
+noisy model of the two measured here — the same context-blindness as on the
+small suite, both spurious comments being confident claims about symbols
+defined outside the diff. A model with `gemini-3.8-flash`'s 0% noise rate
+would have nothing for the budget to fail to remove.
+
+## The default response cap loses large reviews entirely
+
+The first attempt at the run above produced no review at all for
+`large_mixed_pr`:
+
+```
+BadRequestError: 400 - Failed to validate JSON. Please adjust your prompt.
+  'failed_generation': ''
+```
+
+The action's default `max_tokens` is 2048. Ten findings with rationales do not
+fit in 2048 tokens, the response is truncated mid-JSON, and structured output
+then fails validation at the provider. Confirmed directly:
+
+| `max_tokens` | Result |
+|---|---|
+| 2048 (the default) | 400, no review |
+| 8192 | 11 findings, 3426 output tokens |
+
+The pull requests where a review matters most are exactly the ones this
+breaks on, and the error a user sees — "Please adjust your prompt" — points
+nowhere near the cause. The measurement above therefore used
+`--max-tokens 8192`.
+
+Raising the default is a behaviour change on every existing workflow's bill,
+so it is not made here.
 
 ## Limits
 
@@ -112,6 +167,14 @@ make install
 export GEMINI_API_KEY=...
 make eval PROVIDER=gemini              # the 21 small fixtures, as published
 make eval-compare PROVIDER=gemini      # the large suite, with and without the budget
+```
+
+The large suite needs a bigger response cap than the action's default, or the
+review is lost to truncation — see above:
+
+```bash
+python -m evals.run --suite large --compare-budget --max-tokens 8192 \
+  --provider gemini --delay 75
 ```
 
 Each run sends one request per fixture — 21 requests — and prints the count
@@ -142,4 +205,5 @@ meaningless. The first attempt at the Groq run lost 10 of 21 cases that way.
 - **Anthropic.** The adapter authenticates and the request reaches Anthropic's
   billing layer, but the account used for testing has no credit, so no response
   has come back.
-- **Panel mode.** Needs two working providers in one run.
+- **Panel mode.** Needs two working providers in one run. Only one usable key
+  exists at the moment, so this stays untested.

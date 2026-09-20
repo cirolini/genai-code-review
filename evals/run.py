@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from budget import apply_budget
+from config import DEFAULT_MAX_TOKENS
 from diff import parse_diff
 from evals.cases import load_cases
 from evals.metrics import Scores, score_case
@@ -111,6 +112,16 @@ def main(argv=None):
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--panel", default=None, help="Comma-separated providers to run as a panel")
     parser.add_argument("--max-comments", type=int, default=5)
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOKENS,
+        help=(
+            "Response cap. The default is the action's, which is not enough for a "
+            "large pull request: a truncated response fails schema validation and "
+            "the whole review is lost."
+        ),
+    )
     parser.add_argument("--min-severity", default="nit")
     parser.add_argument("--min-confidence", type=float, default=0.0)
     parser.add_argument("--only", default=None, help="Comma-separated case names")
@@ -164,6 +175,7 @@ def main(argv=None):
                 model=args.model if len(member_names) == 1 else None,
                 api_key=args.api_key,
                 base_url=args.base_url,
+                max_tokens=args.max_tokens,
             )
         )
 

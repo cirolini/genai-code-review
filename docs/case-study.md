@@ -302,22 +302,45 @@ of a feature that did not help.
 The fix is to score twice: once against everything found, once against what
 survived the budget and reached the pull request. The first says how good the
 model is; the second says how good the *review* was, and only the second is
-what the budget is trying to move. Against a stub that reports all ten seeded
-defects in a fifteen-file case plus five confident nits:
+what the budget is trying to move. The fixtures needed fixing too:
+`--suite large` composes the labelled single-defect diffs into multi-file pull
+requests, which is where the budget has anything to do.
+
+### And then the measurement disagreed with me
+
+`gpt-oss-120b`, two large cases:
 
 | | Precision | Recall |
 |---|---|---|
-| What the model found | 67% | 100% |
-| What the reviewer received | 100% | 50% |
+| What the model found | 83% | 100% |
+| What the reviewer received (budget 5) | **71%** | 50% |
+| What the reviewer received (no budget) | 83% | 100% |
 
-Every comment that arrives is real; half the defects never arrive. That is the
-trade stated plainly, and whether it is the right one is a judgement — but it
-is now a judgement with numbers under it rather than a paragraph of
-reasoning.
+The budget made precision *worse*. I expected the opposite, and the mechanism
+is obvious in hindsight.
 
-The fixtures needed fixing too. `--suite large` composes the labelled
-single-defect diffs into multi-file pull requests, which is where the budget
-has anything to do. No live provider has been run against it yet.
+On the fifteen-file pull request the model found all ten seeded defects and
+invented nothing; the budget cut five of them. On the clean pull request it
+invented two problems; the budget cut neither, because two findings never come
+near a cap of five. The budget removed only true positives and left every
+false positive in place.
+
+**A cap on volume does nothing about a review that is entirely noise.** Noise
+on a quiet diff is not competing with anything for the slots. What governs the
+quality of what reaches the reviewer is `min_confidence` and `min_severity` —
+the filters that judge a finding on its own merits — not a cap that only
+engages when findings are plentiful.
+
+I am leaving this in rather than quietly re-running until something flattering
+appears, because the number does not actually refute the design; it narrows
+the claim. Five comments instead of ten on a large pull request is less
+attention spent, which is what the budget is for. It is not also a quality
+filter, and I had been describing it as though it were both.
+
+Two caveats: one run of two cases is not a basis for a strong claim in either
+direction, and `gpt-oss-120b` is the noisy model of the two I measured. A
+reviewer with `gemini-3.8-flash`'s 0% noise rate would have given the budget
+nothing to fail at.
 
 ### What running it actually caught
 
@@ -362,12 +385,24 @@ request, and I did not know that until I made one.
 
 ## What I would do next
 
-**Run a live provider against the large suite.** The harness can now measure
-the budget — two scorings, and composed multi-file fixtures where it actually
-binds — but the only numbers behind it come from a stub with scripted output.
-Until a real model runs against `--suite large`, the trade the budget makes is
-demonstrated rather than measured. That is the first gap to close, and it is
-two requests.
+**Decide what to do about the response cap.** The default `max_tokens` of 2048
+cannot hold ten findings with rationales, so the response truncates, structured
+output fails validation, and a large pull request gets no review at all with an
+error that points nowhere near the cause. Raising the default changes every
+existing workflow's bill, so the alternatives — detect the truncation and say
+so, or size the cap from the diff — need thinking about rather than a one-line
+change.
+
+**Filter on merit, not only on volume.** The budget cut true positives and left
+false positives alone, because noise on a quiet diff never competes for the
+cap. `min_confidence` and `min_severity` are the levers that act on a finding
+itself, and they are currently off by default. Whether a confidence floor would
+have removed those two invented comments is measurable with the harness that
+now exists.
+
+**Run `gemini-3.8-flash` against the large suite.** The budget measurement is
+one model and two cases. The model with 0% noise on the small suite is the
+interesting comparison, and it is two requests.
 
 **Reduce the false positives that come from missing context.** The weaker
 model's spurious comments were nearly all confident claims about symbols defined
