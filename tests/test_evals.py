@@ -11,7 +11,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from evals.cases import ExpectedDefect, load_cases, matches
+from evals.cases import ExpectedDefect, compose, load_cases, matches
 from evals.metrics import Scores, score_case
 from evals.report import full_report, summary_table
 from evals.run import review_case
@@ -358,3 +358,144 @@ class RunLogTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LargeSuiteTests(unittest.TestCase):
+    """
+    The composed cases, and the thing they exist to make measurable.
+
+    The published results record that `--compare-budget` produced identical
+    rows: no fixture ever yielded more than five findings, so `max_comments: 5`
+    never bound. Two problems were hiding behind each other. The fixtures were
+    too small, and precision and recall were computed over every finding, so
+    they could not have moved even on a fixture that was large enough.
+    """
+
+    def test_the_default_suite_is_still_the_published_twenty_one(self):
+        self.assertEqual(len(load_cases()), 21)
+        self.assertTrue(all(c.suite == "small" for c in load_cases()))
+
+    def test_large_cases_are_opt_in(self):
+        names = {c.name for c in load_cases()}
+        self.assertNotIn("large_mixed_pr", names)
+        self.assertIn("large_mixed_pr", {c.name for c in load_cases(suite="large")})
+        self.assertEqual(len(load_cases(suite=None)), 23)
+
+    def test_a_composed_case_is_a_real_multi_file_diff(self):
+        [case] = load_cases(only={"large_mixed_pr"}, suite="large")
+        self.assertEqual(case.diff.count("diff --git"), 15)
+        self.assertEqual(len(case.expected), 10)
+        self.assertGreater(len(case.expected), 5, "must exceed max_comments or it proves nothing")
+
+    def test_every_seeded_defect_survives_composition(self):
+        """The labels are inherited, so a wrong one here would be invisible."""
+        parts = load_cases(only={"sql_injection", "off_by_one"})
+        composed = compose("pair", parts)
+        for part in parts:
+            for defect in part.expected:
+                with self.subTest(defect=defect.file):
+                    self.assertIn(defect, composed.expected)
+                    self.assertIn(defect.file, composed.diff)
+
+    def test_composition_refuses_an_unknown_part(self):
+        with self.assertRaises(ValueError):
+            compose("empty", [])
+
+    def test_the_clean_large_case_expects_silence(self):
+        [case] = load_cases(only={"large_clean_pr"}, suite="large")
+        self.assertTrue(case.is_clean)
+        self.assertEqual(case.diff.count("diff --git"), 6)
+
+
+class BudgetEffectTests(unittest.TestCase):
+    """
+    What the budget does to the numbers once it has room to act.
+
+    A reviewer that reports all ten seeded defects plus five nits on invented
+    problems: the model's precision is 67%, but the five comments that reach
+    the pull request are all real, and half the defects never arrive. That
+    trade — higher precision for lower recall, paid in the reviewer's
+    attention — is the project's central claim, and until now it could not be
+    stated in numbers.
+    """
+
+    def setUp(self):
+        [self.case] = load_cases(only={"large_mixed_pr"}, suite="large")
+
+    def stub_reporting_everything(self):
+        by_file = {}
+        for expected in self.case.expected:
+            by_file.setdefault(expected.file, []).append(
+                {
+                    "file": expected.file,
+                    "line_start": expected.line,
+                    "line_end": expected.line,
+                    "severity": "blocker",
+                    "category": expected.categories[0],
+                    "confidence": 0.95,
+                    "title": f"Real defect in {expected.file}",
+                    "rationale": "Seeded.",
+                }
+            )
+        # Five confident nits about files that have nothing wrong with them.
+        for index in range(5):
+            path = "lib/parse.py"
+            by_file.setdefault(path, []).append(
+                {
+                    "file": path,
+                    "line_start": 1,
+                    "line_end": 1,
+                    "severity": "nit",
+                    "category": "style",
+                    "confidence": 0.99,
+                    "title": f"Invented nit {index}",
+                    "rationale": "Not a real problem.",
+                }
+            )
+        return StubProvider(by_file)
+
+    def test_the_budget_binds_on_a_large_case(self):
+        result = review_case(self.case, [self.stub_reporting_everything()], 5, "nit", 0.0)
+        self.assertEqual(len(result.found), 10)
+        self.assertEqual(result.posted_count, 5)
+
+    def test_it_spends_the_budget_on_the_severe_findings(self):
+        result = review_case(self.case, [self.stub_reporting_everything()], 5, "nit", 0.0)
+        self.assertEqual(result.posted_found, 5)
+        self.assertEqual(result.posted_spurious, 0, "nits should not outrank blockers")
+
+    def test_precision_rises_and_recall_falls_at_the_reviewer(self):
+        scores = Scores()
+        scores.cases.append(
+            review_case(self.case, [self.stub_reporting_everything()], 5, "nit", 0.0)
+        )
+
+        self.assertAlmostEqual(scores.precision, 10 / 15)
+        self.assertAlmostEqual(scores.recall, 1.0)
+        self.assertAlmostEqual(scores.posted_precision, 1.0)
+        self.assertAlmostEqual(scores.posted_recall, 0.5)
+
+    def test_an_unbounded_budget_leaves_both_pairs_equal(self):
+        scores = Scores()
+        scores.cases.append(
+            review_case(self.case, [self.stub_reporting_everything()], 99, "nit", 0.0)
+        )
+        self.assertAlmostEqual(scores.precision, scores.posted_precision)
+        self.assertAlmostEqual(scores.recall, scores.posted_recall)
+
+    def test_the_report_shows_the_budget_only_when_it_bound(self):
+        bound = Scores()
+        bound.cases.append(
+            review_case(self.case, [self.stub_reporting_everything()], 5, "nit", 0.0)
+        )
+        report = full_report("t", [("stub", bound)])
+        self.assertIn("What reached the reviewer", report)
+        self.assertIn("Suppressed", report)
+
+        unbound = Scores()
+        unbound.cases.append(
+            review_case(self.case, [self.stub_reporting_everything()], 99, "nit", 0.0)
+        )
+        quiet = full_report("t", [("stub", unbound)])
+        self.assertNotIn("What reached the reviewer", quiet)
+        self.assertIn("never bound", quiet)

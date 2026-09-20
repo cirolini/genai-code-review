@@ -280,16 +280,67 @@ to review a fragment will invent problems about the parts it cannot see, and
 will sound certain doing it. The stronger model resisted this; the weaker one
 did not, and no prompt wording I tried changed that.
 
-### The budget comparison measured nothing
+### The budget comparison measured nothing, and the reason was worse than I thought
 
-`--compare-budget` produced identical rows for both models, because neither ever
-produced more than five findings on a single fixture. `max_comments: 5` never
-bound.
+`--compare-budget` produced identical rows for both models. My first
+explanation was that the fixtures were too small: neither model ever produced
+more than five findings on a one-file diff, so `max_comments: 5` never bound.
+That was true, and it was the less interesting half.
 
-That is a null result, not a vindication. The fixtures are one file and a
-handful of lines each; the budget is built for a forty-file pull request. The
-eval set cannot exercise the feature the project is named after, which is the
-most useful thing I learned from running it.
+The other half is that the numbers could not have moved anyway. Precision and
+recall were computed over every finding the model produced — and the budget
+does not change what the model produces, only what gets posted. A budgeted run
+and an unbudgeted one were identical **by construction**, on any fixture, of
+any size. I had built a comparison that was incapable of showing a difference,
+run it, and written down the null result as though it were evidence about
+fixture size.
+
+That is the more useful mistake of the two, because it is the kind you cannot
+find by looking at the output. The rows looked exactly like a real measurement
+of a feature that did not help.
+
+The fix is to score twice: once against everything found, once against what
+survived the budget and reached the pull request. The first says how good the
+model is; the second says how good the *review* was, and only the second is
+what the budget is trying to move. The fixtures needed fixing too:
+`--suite large` composes the labelled single-defect diffs into multi-file pull
+requests, which is where the budget has anything to do.
+
+### And then the measurement disagreed with me
+
+`gpt-oss-120b`, two large cases:
+
+| | Precision | Recall |
+|---|---|---|
+| What the model found | 83% | 100% |
+| What the reviewer received (budget 5) | **71%** | 50% |
+| What the reviewer received (no budget) | 83% | 100% |
+
+The budget made precision *worse*. I expected the opposite, and the mechanism
+is obvious in hindsight.
+
+On the fifteen-file pull request the model found all ten seeded defects and
+invented nothing; the budget cut five of them. On the clean pull request it
+invented two problems; the budget cut neither, because two findings never come
+near a cap of five. The budget removed only true positives and left every
+false positive in place.
+
+**A cap on volume does nothing about a review that is entirely noise.** Noise
+on a quiet diff is not competing with anything for the slots. What governs the
+quality of what reaches the reviewer is `min_confidence` and `min_severity` —
+the filters that judge a finding on its own merits — not a cap that only
+engages when findings are plentiful.
+
+I am leaving this in rather than quietly re-running until something flattering
+appears, because the number does not actually refute the design; it narrows
+the claim. Five comments instead of ten on a large pull request is less
+attention spent, which is what the budget is for. It is not also a quality
+filter, and I had been describing it as though it were both.
+
+Two caveats: one run of two cases is not a basis for a strong claim in either
+direction, and `gpt-oss-120b` is the noisy model of the two I measured. A
+reviewer with `gemini-3.8-flash`'s 0% noise rate would have given the budget
+nothing to fail at.
 
 ### What running it actually caught
 
@@ -334,9 +385,24 @@ request, and I did not know that until I made one.
 
 ## What I would do next
 
-**Build fixtures large enough to exercise the budget.** The current set cannot:
-no fixture produced more than five findings, so the feature this project is
-built around went unmeasured. That is the first gap to close.
+**Decide what to do about the response cap.** The default `max_tokens` of 2048
+cannot hold ten findings with rationales, so the response truncates, structured
+output fails validation, and a large pull request gets no review at all with an
+error that points nowhere near the cause. Raising the default changes every
+existing workflow's bill, so the alternatives — detect the truncation and say
+so, or size the cap from the diff — need thinking about rather than a one-line
+change.
+
+**Filter on merit, not only on volume.** The budget cut true positives and left
+false positives alone, because noise on a quiet diff never competes for the
+cap. `min_confidence` and `min_severity` are the levers that act on a finding
+itself, and they are currently off by default. Whether a confidence floor would
+have removed those two invented comments is measurable with the harness that
+now exists.
+
+**Run `gemini-3.8-flash` against the large suite.** The budget measurement is
+one model and two cases. The model with 0% noise on the small suite is the
+interesting comparison, and it is two requests.
 
 **Reduce the false positives that come from missing context.** The weaker
 model's spurious comments were nearly all confident claims about symbols defined

@@ -4,12 +4,37 @@
 
 ### Added
 
+- **A large eval suite.** `--suite large` runs multi-file pull requests
+  composed from the labelled fixtures: `large_mixed_pr` (15 files, 10 seeded
+  defects) and `large_clean_pr` (6 files, nothing wrong). The comment budget
+  cannot bind on a single-file fixture, so until now it was never exercised.
+  `--suite small`, the 21 published fixtures, stays the default.
 - **Acceptance signal.** `python -m evals.feedback --repo owner/name` (also
   `make feedback`) reads a repository the action has run on and reports what
   reviewers did with its comments: 👍/👎 reactions, replies, thread resolution,
   and the share nobody engaged with. Read-only, no model call. The signals are
   reported separately rather than averaged — a resolved thread means the
   conversation ended, not that the finding was right.
+
+### Fixed
+
+- **The comment budget was unmeasurable.** Precision and recall were computed
+  over every finding the model produced, and the budget changes only what is
+  posted — so a budgeted and an unbudgeted run were identical by construction,
+  on any fixture of any size. Scoring now runs twice, once against everything
+  found and once against what reached the pull request, and the report carries
+  a "What reached the reviewer" table with the second pair. The published
+  small-suite numbers are unaffected.
+
+### Known issue
+
+- **The default `max_tokens` of 2048 loses large reviews.** Ten findings with
+  rationales do not fit, the response truncates mid-JSON, and structured
+  output then fails validation at the provider — the user sees a 400 saying
+  "Please adjust your prompt". The pull requests the comment budget exists for
+  are exactly the ones this breaks on. Documented in `docs/results/` with the
+  measurement; raising the default changes every existing workflow's bill, so
+  it is not changed here.
 
 ## v3.0.0 — 2026-09-19
 

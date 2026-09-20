@@ -1,0 +1,13 @@
+{
+  "name": "large_clean_pr",
+  "suite": "large",
+  "note": "Six files, nothing wrong with any of them: a rename, sorted imports, a docstring, type hints, an added test and an extracted constant. The correct review is silence. A big diff is the condition under which a reviewer most expects the bot to say something, which is exactly when saying nothing is worth measuring.",
+  "compose": [
+    "clean_rename",
+    "clean_import_sort",
+    "clean_docstring",
+    "clean_typing",
+    "clean_test_added",
+    "clean_constant_extract"
+  ]
+}

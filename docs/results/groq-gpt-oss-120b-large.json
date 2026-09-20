@@ -1,0 +1,30 @@
+{
+  "label": "openai-compatible/openai/gpt-oss-120b",
+  "precision": 0.8333333333333334,
+  "recall": 1.0,
+  "f1": 0.9090909090909091,
+  "noise_rate": 1.0,
+  "cost_per_pr": null,
+  "mean_latency": 5.46,
+  "errors": 0,
+  "cases": [
+    {
+      "name": "large_clean_pr",
+      "clean": true,
+      "found": 0,
+      "missed": 0,
+      "spurious": 2,
+      "posted": 2,
+      "error": null
+    },
+    {
+      "name": "large_mixed_pr",
+      "clean": false,
+      "found": 10,
+      "missed": 0,
+      "spurious": 0,
+      "posted": 5,
+      "error": null
+    }
+  ]
+}
