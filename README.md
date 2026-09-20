@@ -111,6 +111,44 @@ Google.
     github_pr_id: ${{ github.event.number }}
 ```
 
+### Panel mode (experimental, off by default)
+
+`panel` runs two providers over the same diff and merges what they found. A
+finding both reported has its confidence raised by 15%; one only a single
+member reported has it cut by 30%, so it is demoted rather than discarded — a
+model spotting a real blocker the other missed is still worth keeping. Findings
+are matched across members by file, category and normalised title, because two
+models describing one defect rarely agree on the line or the wording. The
+summary reports the agreement rate.
+
+```yaml
+- uses: cirolini/genai-code-review@v3
+  with:
+    panel: gemini,anthropic
+    api_key: ${{ secrets.GEMINI_API_KEY }}
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    github_pr_id: ${{ github.event.number }}
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+**Every member needs its own key.** The `api_key` input goes to the first
+member only; the others read their provider's environment variable
+(`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`). Without it the run fails at startup
+with `provider ... needs an API key` rather than quietly reviewing with one
+model.
+
+**OpenAI cannot currently be the second member.** The action declares
+`OPENAI_API_KEY` from its own deprecated input, so a value passed through the
+step's `env:` is overwritten with an empty one and the member fails to build.
+Put OpenAI first, as `provider`/`api_key`, and the other model second.
+
+**The price is roughly double** — two requests, two sets of tokens, and the
+latency of both. That is why it is off by default and called experimental:
+there is no measurement yet showing the second opinion is worth what it costs.
+Panel mode has never been run against two live providers. See
+[`docs/results/`](docs/results/).
+
 ### Self-hosted and third-party endpoints
 
 `openai-compatible` covers Ollama, vLLM, Azure OpenAI, OpenRouter, Together and
@@ -151,7 +189,7 @@ secret.
 | `min_confidence` | `0` | 0 to 1 |
 | `ignore_paths` | see below | Globs to skip. Unset uses the defaults |
 | `incremental` | `true` | On a push, review only the new commits |
-| `panel` | — | Experimental. Two providers, merged. ~2x cost |
+| `panel` | — | Experimental. Two providers, merged. ~2x cost — [details](#panel-mode-experimental-off-by-default) |
 | `language` | `en` | Language the findings are written in |
 | `custom_prompt` | — | Extra instructions for the reviewer |
 | `temperature` | `0.5` | Sampling temperature |

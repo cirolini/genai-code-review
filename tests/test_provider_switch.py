@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from main import create_review_prompt, format_review_comment
-from providers import build_provider
+from providers import ProviderConfigurationError, build_provider
 
 FIXTURE = (Path(__file__).parent / "fixtures" / "sample.diff").read_text()
 REVIEW_TEXT = "This reintroduces a SQL injection; use a parameterised query."
@@ -100,3 +100,36 @@ class ProviderSwitchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PanelMemberKeyTests(unittest.TestCase):
+    """
+    The documented rule for panel mode: every member brings its own key.
+
+    `main.process_review` builds each extra member with `api_key=None`, so the
+    `api_key` input reaches the first member and nobody else. README and
+    `.genai-review.yml.example` say so; these keep them from drifting.
+    """
+
+    def test_a_second_member_reads_its_own_environment_variable(self):
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "member-key"}, clear=True):
+            provider = build_provider("anthropic", api_key=None)
+        self.assertEqual(provider.api_key, "member-key")
+
+    def test_a_second_member_without_a_key_fails_at_startup(self):
+        """Loudly, rather than silently reviewing with one model."""
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(ProviderConfigurationError) as ctx:
+                build_provider("anthropic", api_key=None)
+        self.assertIn("ANTHROPIC_API_KEY", str(ctx.exception))
+
+    def test_an_empty_key_is_treated_as_missing(self):
+        """
+        Why OpenAI cannot be the second member: action.yml always sets
+        OPENAI_API_KEY from its deprecated input, so an unused input leaves an
+        empty string in the environment rather than nothing at all.
+        """
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}, clear=True):
+            with self.assertRaises(ProviderConfigurationError) as ctx:
+                build_provider("openai", api_key=None)
+        self.assertIn("OPENAI_API_KEY", str(ctx.exception))
