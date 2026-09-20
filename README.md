@@ -258,6 +258,22 @@ reviewed. Upload it to keep a record:
 
 It contains no credentials, no diff and no source code.
 
+### Did anyone act on the comments?
+
+The run log records what the bot said. To see what reviewers did with it —
+reactions, replies and whether the thread was resolved — read a repository the
+action has already run on:
+
+```bash
+make feedback REPO=owner/name        # needs $GITHUB_TOKEN with read access
+```
+
+It is read-only and calls no model. The signals are reported side by side
+rather than averaged into one score: a resolved thread means the conversation
+ended, which happens both when a finding is fixed and when it is dismissed. The
+row that carries the most information is the share of comments nobody touched
+at all.
+
 ---
 
 ## How it works
@@ -284,6 +300,7 @@ make install   # dependencies
 make check     # ruff + pytest
 make eval-dry  # list the eval fixtures without calling a provider
 make eval      # run the eval set (needs an API key; costs money)
+make feedback  # acceptance signal from a repository the action has run on
 ```
 
 ---
