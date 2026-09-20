@@ -114,3 +114,10 @@ meaningless. The first attempt at the Groq run lost 10 of 21 cases that way.
   billing layer, but the account used for testing has no credit, so no response
   has come back.
 - **Panel mode.** Needs two working providers in one run.
+- **Acceptance in the wild.** `python -m evals.feedback --repo owner/name`
+  reads reactions, replies and thread resolution on comments the action has
+  already posted. It reports nothing yet, because v3 has not been running long
+  enough anywhere to have produced comments for reviewers to react to. This is
+  the number that would actually settle the argument — the eval set measures
+  the bot against defects chosen for it, and this measures it against reviewers
+  who did not choose anything.
