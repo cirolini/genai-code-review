@@ -16,7 +16,50 @@
   reported separately rather than averaged — a resolved thread means the
   conversation ended, not that the finding was right.
 
+### Security
+
+- **`.genai-review.yml` is now read from the pull request's base branch.** It
+  was read from the working directory, which meant two things. With an
+  `actions/checkout` step, the file came from the pull request itself, so
+  whoever opened it could set `ignore_paths: ["**"]` or `max_comments: 0` and
+  review their own change out of existence, or point `base_url` at their own
+  server and receive the API key. Without a checkout — which is what the README
+  recommends — the file was silently never read at all. It is now fetched over
+  the API from the base commit, so it works without a checkout and a pull
+  request cannot configure its own review.
+- **`base_url` can no longer be set in `.genai-review.yml`.** It decides which
+  server receives the API key, so it is an action input only.
+
 ### Fixed
+
+- **Files that were not reviewed dropped out of the summary on the next push.**
+  The last reviewed SHA advanced even when a run skipped files as too large,
+  truncated the diff, or got unusable output from the model. The next push
+  diffed from there, so those files were neither reviewed nor listed under
+  "Not reviewed" — the one promise the summary exists to keep. The SHA now
+  advances only when a run covered everything, and the summary says the next
+  push will review the earlier range again.
+- **Findings counted as posted when the review failed to post.** If GitHub
+  rejected the review, its findings were still recorded as posted and never
+  tried again. They are now listed in the summary instead and retried on the
+  next push.
+- **Incremental review broke after merging the base branch or rebasing.** The
+  comparison with the last reviewed commit then contains changes that are not
+  part of the pull request, and GitHub rejects the whole review with a 422 over
+  a single comment on one of them. The comparison is now checked first: a
+  rewritten history or a merge commit in the range falls back to reviewing the
+  whole pull request, and the summary says why. Findings are also placed
+  against the pull request's own diff, so a file outside it is never reviewed
+  or commented on.
+- **One-click suggestions could land on the wrong lines.** A finding up to
+  three lines off the diff is moved to the nearest line, or its range is
+  shortened to fit a hunk, but its `suggestion` was still offered as a one-click
+  change — so "Commit suggestion" replaced code the suggestion was not written
+  for. A moved finding now shows its suggestion as a plain code block.
+- **The action was listed as "ChatGPT GitHub Actions".** `action.yml` now names
+  it GenAI Code Review and describes what v3 does.
+- **The migration guide said `@v2` was untouched.** It was moved once, to the
+  fix-only v2.1; the guide and the v3 release notes now say so.
 
 - **The comment budget was unmeasurable.** Precision and recall were computed
   over every finding the model produced, and the budget changes only what is
@@ -61,7 +104,7 @@
 - **`mode` now defaults to `review`** instead of `files`. A workflow that never
   set `mode` gets inline comments on the diff instead of one long summary
   comment. Workflows that set `mode` explicitly are unaffected, and the `v2`
-  tag is untouched — this applies only when the pin moves to `v3`. Pin
+  tag keeps the `files` default — this applies only when the pin moves to `v3`. Pin
   `mode: files` to keep the previous output.
 
 ### Added

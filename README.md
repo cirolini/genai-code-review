@@ -169,9 +169,15 @@ Every setting can be given as an action input or in a `.genai-review.yml` file
 at the repository root. **Action inputs take precedence** over the file, so a
 workflow can always override the repository's defaults.
 
+The file is read over the API from the pull request's **base branch**, not from
+the pull request, and needs no checkout. A change to it takes effect once it is
+merged. Otherwise whoever opens a pull request could set `ignore_paths: ["**"]`
+and review their own change out of existence.
+
 See [`.genai-review.yml.example`](.genai-review.yml.example) for a commented
 file. There is deliberately no `api_key` key in it: credentials belong in a
-secret.
+secret. `base_url` is also input-only, because it decides which server receives
+the key.
 
 ### Reference
 
@@ -194,7 +200,7 @@ secret.
 | `custom_prompt` | — | Extra instructions for the reviewer |
 | `temperature` | `0.5` | Sampling temperature |
 | `max_tokens` | `8192` | Response length cap. Below ~4000 a large review truncates and is lost |
-| `config_path` | `.genai-review.yml` | Repository config file |
+| `config_path` | `.genai-review.yml` | Repository config file, read from the base branch |
 | `runlog_path` | `genai-review-runlog.json` | Where the per-run JSON log is written |
 
 `ignore_paths` defaults to skipping lockfiles, vendored and generated code,
@@ -233,7 +239,11 @@ diff; its only output is findings validated against a schema.
 
 **API keys.** Pass them from a secret. The key is never written to the run log,
 never included in an error message posted to a pull request, and never read from
-`.genai-review.yml`.
+`.genai-review.yml`. Neither is `base_url`, the server the key is sent to.
+
+**The config file cannot be changed by the pull request it configures.**
+`.genai-review.yml` is read from the base branch, so a pull request that edits it
+is reviewed under the settings already merged.
 
 **What leaves your repository.** The diff of the files being reviewed is sent to
 whichever provider you configure. If that is not acceptable for a given

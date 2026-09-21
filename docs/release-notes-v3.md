@@ -11,7 +11,8 @@ https://github.com/cirolini/genai-code-review/releases/tag/v3.0.0
   tags are independent and not aligned.
 - **`mode` defaults to `review`.** A major version is the right moment to make
   v3 do what v3 is for. Workflows that set `mode` explicitly are unaffected;
-  `@v2` is untouched and keeps the `files` default.
+  `@v2` keeps the `files` default. (It points at v2.1, a fix-only release
+  from the same day; see the changelog.)
 - **`provider` defaults to `gemini`.** It is the only configuration with
   measured numbers behind it — 100% precision, 93% recall, 0% noise, $0.0009
   per pull request. A workflow passing the deprecated `openai_api_key` without
@@ -22,8 +23,9 @@ https://github.com/cirolini/genai-code-review/releases/tag/v3.0.0
 ### Marketplace
 
 The existing listing is named "ChatGPT GitHub Actions", which no longer
-describes the action. Updating it is a separate, explicit step and has not been
-done.
+describes the action. `action.yml` was renamed to "GenAI Code Review" after
+v3.0.0; the listing itself changes only when a release is published to the
+Marketplace, which is a separate, explicit step and has not been done.
 
 ### Two adapters remain unverified against a live API
 
@@ -51,7 +53,8 @@ never set `mode` gets inline comments instead of one summary comment — pin
 though a workflow passing the deprecated `openai_api_key` without a `provider`
 stays on OpenAI.
 
-Every v2 input still works, and `@v2` itself is untouched. See
+Every v2 input still works, and `@v2` keeps the v2 behaviour (it points at the
+fix-only v2.1). See
 [the migration guide](migrating-v2-to-v3.md).
 
 #### Multiple providers
