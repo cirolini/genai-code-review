@@ -395,6 +395,12 @@ class FakeGithub:
         self.comments = []
         self.reviews = []
         self.head_sha = "sha-one"
+        # What the compare endpoint reports; tests override it to simulate a
+        # rebase or a merge from the base branch.
+        self.comparison = {"status": "ahead", "total_commits": 1,
+                           "commits": [{"parents": [{"sha": "p"}]}]}
+        self.compare_patch = None
+        self.fail_reviews = False
 
     def get_pr_head_sha(self, pr_id):
         return self.head_sha
@@ -402,8 +408,11 @@ class FakeGithub:
     def get_pr_patch(self, pr_id):
         return self.patch
 
+    def get_compare(self, base, head):
+        return self.comparison
+
     def get_compare_patch(self, base, head):
-        return self.patch
+        return self.patch if self.compare_patch is None else self.compare_patch
 
     def get_pr_comments(self, pr_id):
         return list(self.comments)
@@ -415,6 +424,8 @@ class FakeGithub:
         return comment
 
     def create_review(self, pr_id, comments, body):
+        if self.fail_reviews:
+            raise RuntimeError("422 Unprocessable Entity")
         self.reviews.append(comments)
         return {"id": len(self.reviews)}
 
@@ -537,6 +548,147 @@ class AcceptanceTests(unittest.TestCase):
         execute(github, lambda _: self.provider, 1, settings)
         self.assertEqual(len(github.comments), 1)
         self.assertIn("No reviewable files", github.comments[0].body)
+
+
+class NothingIsForgottenTests(unittest.TestCase):
+    """
+    State moves forward only for what actually happened.
+
+    The summary's promise is that it says what was not reviewed. If the last
+    reviewed SHA advanced past a run that skipped files, the next push would
+    diff from there and those files would drop out of the summary unreviewed.
+    """
+
+    def setUp(self):
+        self.github = FakeGithub(NOISY_PATCH)
+        self.provider = provider_returning(noisy_findings(4))
+        self.settings = ReviewSettings(max_comments=5)
+
+    def run_once(self):
+        return execute(self.github, lambda _: self.provider, 1, self.settings)
+
+    def state(self):
+        return sticky.parse_state(self.github.comments[0].body)
+
+    def test_an_incomplete_run_does_not_advance_the_reviewed_sha(self):
+        self.provider.review.return_value.text = "not json at all"
+        report = self.run_once()
+        self.assertTrue(report.parse_failed)
+        self.assertIsNone(self.state()["last_reviewed_sha"])
+        self.assertIn("next push reviews the whole pull request again",
+                      self.github.comments[0].body)
+
+    def test_an_incomplete_second_run_keeps_the_previous_base(self):
+        self.run_once()
+        self.github.head_sha = "sha-two"
+        self.provider.review.return_value.text = "not json at all"
+        self.run_once()
+        self.assertEqual(self.state()["last_reviewed_sha"], "sha-one")
+
+    def test_a_complete_run_advances_the_reviewed_sha(self):
+        self.run_once()
+        self.assertEqual(self.state()["last_reviewed_sha"], "sha-one")
+
+    def test_findings_are_not_marked_posted_when_the_review_is_rejected(self):
+        self.github.fail_reviews = True
+        report = self.run_once()
+        self.assertTrue(report.post_failed)
+        self.assertEqual(self.state()["posted"], [])
+        self.assertIsNone(self.state()["last_reviewed_sha"])
+
+    def test_a_rejected_review_lists_its_findings_in_the_summary(self):
+        self.github.fail_reviews = True
+        report = self.run_once()
+        body = self.github.comments[0].body
+        self.assertIn("GitHub rejected the inline comments", body)
+        for finding in report.budget.posted:
+            self.assertIn(finding.title, body)
+
+    def test_findings_rejected_once_are_posted_on_the_next_push(self):
+        self.github.fail_reviews = True
+        first = self.run_once()
+        self.github.fail_reviews = False
+        self.github.head_sha = "sha-two"
+        second = self.run_once()
+        self.assertEqual({f.title for f in second.budget.posted},
+                         {f.title for f in first.budget.posted})
+
+
+class IncrementalSafetyTests(unittest.TestCase):
+    """After a rebase or a merge from main, the compare diff is not the PR's."""
+
+    def setUp(self):
+        self.github = FakeGithub(NOISY_PATCH)
+        self.provider = provider_returning(noisy_findings(2))
+        self.settings = ReviewSettings(max_comments=5)
+        execute(self.github, lambda _: self.provider, 1, self.settings)
+        self.github.head_sha = "sha-two"
+
+    def run_again(self):
+        return execute(self.github, lambda _: self.provider, 1, self.settings)
+
+    def test_a_rewritten_history_falls_back_to_the_whole_pull_request(self):
+        self.github.comparison = {"status": "diverged", "commits": []}
+        report = self.run_again()
+        self.assertFalse(report.incremental)
+        self.assertIn("rewritten", report.full_review_reason)
+        self.assertIn("reviewed again", self.github.comments[0].body)
+
+    def test_a_merge_from_the_base_branch_falls_back_to_the_whole_pull_request(self):
+        self.github.comparison = {
+            "status": "ahead",
+            "total_commits": 1,
+            "commits": [{"parents": [{"sha": "a"}, {"sha": "b"}]}],
+        }
+        report = self.run_again()
+        self.assertFalse(report.incremental)
+        self.assertIn("merge", report.full_review_reason)
+
+    def test_files_outside_the_pull_request_are_never_reviewed(self):
+        """Defence in depth, if something from main slips into the range."""
+        self.github.compare_patch = NOISY_PATCH + (
+            "diff --git a/from_main.py b/from_main.py\n"
+            "--- a/from_main.py\n+++ b/from_main.py\n@@ -1,1 +1,2 @@\n x\n+y\n"
+        )
+        self.provider = provider_returning([{
+            "file": "from_main.py", "line_start": 2, "line_end": 2,
+            "severity": "blocker", "category": "bug", "confidence": 0.9,
+            "title": "Not this pull request's code", "rationale": "r",
+        }])
+        report = self.run_again()
+        self.assertTrue(report.incremental)
+        self.assertNotIn("from_main.py", self.provider.review.call_args.args[0])
+        self.assertEqual(report.budget.posted, [])
+
+
+class RelocatedSuggestionTests(unittest.TestCase):
+    """A suggestion written for lines 10-11 must not be committed onto 12-13."""
+
+    PATCH = (
+        "diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n"
+        "@@ -1,1 +1,3 @@\n import os\n+x = 1\n+y = 2\n"
+    )
+
+    def finding(self, line):
+        return {
+            "file": "a.py", "line_start": line, "line_end": line,
+            "severity": "major", "category": "bug", "confidence": 0.9,
+            "title": "Wrong value", "rationale": "r", "suggestion": "x = 2",
+        }
+
+    def posted_body(self, line):
+        github = FakeGithub(self.PATCH)
+        provider = provider_returning([self.finding(line)])
+        execute(github, lambda _: provider, 1, ReviewSettings(ignore_paths=()))
+        return github.inline_comments[0]["body"]
+
+    def test_an_exact_finding_keeps_its_one_click_suggestion(self):
+        self.assertIn("```suggestion", self.posted_body(2))
+
+    def test_a_snapped_finding_loses_its_one_click_suggestion(self):
+        body = self.posted_body(5)
+        self.assertNotIn("```suggestion", body)
+        self.assertIn("x = 2", body)
 
 
 if __name__ == "__main__":

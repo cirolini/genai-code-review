@@ -143,6 +143,7 @@ def place_findings(
         span = finding.line_end - finding.line_start
         finding.line_start = nearest
         finding.line_end = nearest + span
+        finding.relocated = True
         placed.append(_clamp_range(finding, diff_file))
 
     return placed, rejected
@@ -161,6 +162,8 @@ def _clamp_range(finding: Finding, diff_file) -> Finding:
     end = finding.line_end
     while end > finding.line_start and not diff_file.can_comment_on(end):
         end -= 1
+    if end != finding.line_end:
+        finding.relocated = True
     finding.line_end = end
     return finding
 

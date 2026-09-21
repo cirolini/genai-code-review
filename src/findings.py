@@ -37,6 +37,10 @@ class Finding:
     title: str
     rationale: str
     suggestion: str | None = None
+    # Set when placement moved or shortened the model's line range to fit the
+    # diff. The suggestion was written for the original lines, so it must not
+    # be offered as a one-click change on the new ones.
+    relocated: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)

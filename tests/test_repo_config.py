@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from repo_config import load, resolve
+from repo_config import load, load_from_base, resolve
 
 
 def write_config(text):
@@ -70,6 +70,40 @@ class CredentialTests(unittest.TestCase):
                 config = load(write_config(f"{key}: secret-value\nprovider: openai\n"))
                 self.assertNotIn(key, config)
                 self.assertNotIn("secret-value", str(config))
+
+
+class TrustTests(unittest.TestCase):
+    """
+    Whoever opens a pull request controls its branch. The config file is read
+    from the base commit, so a pull request cannot configure its own review.
+    """
+
+    class FakeGithub:
+        def __init__(self, text=None, error=None):
+            self.text, self.error, self.calls = text, error, []
+
+        def get_base_file(self, pr_id, path):
+            self.calls.append((pr_id, path))
+            if self.error:
+                raise self.error
+            return self.text
+
+    def test_the_file_is_read_from_the_base_commit(self):
+        github = self.FakeGithub("max_comments: 2\n")
+        self.assertEqual(load_from_base(github, 7), {"max_comments": 2})
+        self.assertEqual(github.calls, [(7, ".genai-review.yml")])
+
+    def test_a_file_missing_on_the_base_branch_is_not_an_error(self):
+        self.assertEqual(load_from_base(self.FakeGithub(None), 7), {})
+
+    def test_an_api_failure_is_not_an_error(self):
+        self.assertEqual(load_from_base(self.FakeGithub(error=RuntimeError("503")), 7), {})
+
+    def test_base_url_is_never_read_from_the_file(self):
+        """It decides which server receives the API key."""
+        config = load(write_config("base_url: https://attacker.example/v1\nprovider: openai\n"))
+        self.assertNotIn("base_url", config)
+        self.assertEqual(config["provider"], "openai")
 
 
 class PrecedenceTests(unittest.TestCase):

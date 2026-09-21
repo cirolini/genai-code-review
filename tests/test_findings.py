@@ -166,7 +166,11 @@ class SchemaConsistencyTests(unittest.TestCase):
         required = set(FINDINGS_SCHEMA["properties"]["findings"]["items"]["required"])
         fields = set(Finding.__dataclass_fields__)
         self.assertTrue(required <= fields)
-        self.assertEqual(fields - required, {"suggestion"})
+        # `relocated` is set by placement, never by the model, so it is not
+        # in the schema at all.
+        self.assertEqual(fields - required, {"suggestion", "relocated"})
+        item = FINDINGS_SCHEMA["properties"]["findings"]["items"]
+        self.assertNotIn("relocated", item["properties"])
 
 
 class RankingTests(unittest.TestCase):

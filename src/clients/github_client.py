@@ -9,7 +9,7 @@ import logging
 import os
 
 import requests
-from github import Github
+from github import Github, UnknownObjectException
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,35 @@ class GithubClient:
         response.raise_for_status()
         logger.info("Retrieved diff %s..%s", base_sha[:7], head_sha[:7])
         return response.text
+
+    def get_compare(self, base_sha, head_sha):
+        """
+        The comparison between two commits, as JSON: its `status` and commits.
+
+        Read before trusting an incremental diff. A force-push leaves the two
+        commits `diverged`, and a merge from the base branch puts commits in the
+        range that are not part of the pull request.
+        """
+        url = f"{self.api_root}/repos/{self.repo_name}/compare/{base_sha}...{head_sha}"
+        response = requests.get(url, headers=self._api_headers(), timeout=60)
+        response.raise_for_status()
+        return response.json()
+
+    def get_base_file(self, pr_id, path):
+        """
+        A file's text on the pull request's base commit, or None if absent.
+
+        Configuration is read from here rather than from the pull request's own
+        branch, because whoever opens a pull request controls its branch.
+        """
+        base_sha = self.get_pr(pr_id).base.sha
+        try:
+            content = self.repo.get_contents(path, ref=base_sha)
+        except UnknownObjectException:
+            return None
+        if isinstance(content, list):  # a directory, not a file
+            return None
+        return content.decoded_content.decode("utf-8")
 
     def create_review(self, pr_id, comments, body):
         """

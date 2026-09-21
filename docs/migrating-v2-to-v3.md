@@ -38,9 +38,11 @@ To keep the v2 behaviour, pin it:
     mode: files          # <- keeps the single-comment output
 ```
 
-Note that `@v2` itself is untouched. A workflow pinned to `cirolini/genai-code-review@v2`
-keeps the `files` default and keeps behaving exactly as it does today; only
-moving the pin to `@v3` changes anything.
+`@v2` keeps the v2 behaviour. It was moved once, on 2026-09-19, to
+[v2.1](../CHANGELOG.md#v21--2026-09-19): a maintenance release that made v2
+start again after it had stopped working everywhere, with no new inputs and the
+same `files` default. A workflow pinned to `cirolini/genai-code-review@v2` keeps
+the single-comment output; only moving the pin to `@v3` changes it.
 
 ### Also check your model
 

@@ -1,5 +1,5 @@
-name: "ChatGPT GitHub Actions"
-description: "This GitHub Action automates code review for pull requests using OpenAI's GPT models. By integrating this action into your CI/CD pipeline, it provides detailed, AI-generated reviews of your code directly within the PR comments. This tool helps maintain code quality, ensures adherence to best practices, and highlights potential improvements and bugs."
+name: "GenAI Code Review"
+description: "Reviews pull request diffs with an LLM (Gemini, OpenAI, Anthropic or any OpenAI-compatible server) and posts only the few inline comments most worth a human's attention, saying what it held back and what it did not review."
 inputs:
   provider:
     description: "LLM provider: gemini (default), openai, anthropic, or openai-compatible. A workflow that sets the deprecated openai_api_key and no provider stays on openai."
@@ -81,7 +81,7 @@ inputs:
     required: false
     default: ""
   config_path:
-    description: "Repository config file. Action inputs take precedence over it. Default .genai-review.yml."
+    description: "Repository config file, read from the pull request's base branch (never from the pull request itself). Action inputs take precedence over it. Default .genai-review.yml."
     required: false
     default: ""
   runlog_path:
