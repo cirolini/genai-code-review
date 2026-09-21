@@ -53,9 +53,12 @@ never set `mode` gets inline comments instead of one summary comment — pin
 though a workflow passing the deprecated `openai_api_key` without a `provider`
 stays on OpenAI.
 
-Every v2 input still works, and `@v2` keeps the v2 behaviour (it points at the
-fix-only v2.1). See
+Every v2 input still works, and `@v2` itself is untouched. See
 [the migration guide](migrating-v2-to-v3.md).
+
+> **Correction (v3.0.1):** "`@v2` itself is untouched" was wrong. `v2` was
+> moved once, on 2026-09-19, to v2.1 — a fix-only release that made v2 start
+> again, with no new inputs and the same `files` default.
 
 #### Multiple providers
 
