@@ -12,7 +12,7 @@ from config import DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE, OP
 from panel import parse_panel
 from paths import parse_ignore_paths
 from providers import ProviderError, build_provider
-from repo_config import load as load_repo_config
+from repo_config import load_from_base as load_repo_config
 from repo_config import resolve as resolve_setting
 from review_run import ReviewSettings, execute
 from runlog import write as write_runlog
@@ -32,13 +32,12 @@ def main():
     review that never happened.
     """
     try:
-        env_vars = get_env_vars()
+        github_client = GithubClient(get_env_variable("GITHUB_TOKEN", required=True))
+        pr_id = _as_int("GITHUB_PR_ID", get_env_variable("GITHUB_PR_ID", required=True))
+        env_vars = get_env_vars(load_repo_config(github_client, pr_id))
     except ValueError as e:
         logger.error("Environment variable error: %s", e)
         raise
-
-    github_client = GithubClient(env_vars["GITHUB_TOKEN"])
-    pr_id = env_vars["GITHUB_PR_ID"]
 
     try:
         provider = build_provider(
@@ -108,9 +107,12 @@ def report_provider_failure(github_client, pr_id, error):
         logger.exception("Could not post the failure comment; original error follows")
 
 
-def get_env_vars():
+def get_env_vars(config=None):
     """
     Read configuration from the environment and `.genai-review.yml`.
+
+    `config` is the repository config file, already read from the pull
+    request's base commit by the caller. None means there is none.
 
     Precedence is action input, then repository config file, then default. The
     workflow is the more specific statement of intent, and a file in the
@@ -123,7 +125,7 @@ def get_env_vars():
     Raises:
         ValueError: if a required variable is missing or cannot be converted.
     """
-    config = load_repo_config()
+    config = config or {}
 
     def setting(name, key, default=None):
         return resolve_setting(get_env_variable(name, required=False), config, key, default)
@@ -135,7 +137,8 @@ def get_env_vars():
         "LANGUAGE": setting("LANGUAGE", "language", "en"),
         "CUSTOM_PROMPT": setting("CUSTOM_PROMPT", "custom_prompt"),
         "PROVIDER": _resolve_provider(setting("PROVIDER", "provider", None)),
-        "BASE_URL": setting("BASE_URL", "base_url") or None,
+        # Never from the config file: it decides where the API key is sent.
+        "BASE_URL": get_env_variable("BASE_URL", required=False) or None,
         "MIN_SEVERITY": str(setting("MIN_SEVERITY", "min_severity", "nit")).strip().lower(),
         "INCREMENTAL": _as_bool(setting("INCREMENTAL", "incremental", True), True),
         "PANEL": _as_panel(setting("PANEL", "panel")),

@@ -1,3 +1,4 @@
+import os
 import unittest
 from types import SimpleNamespace
 from typing import ClassVar
@@ -155,6 +156,16 @@ class ProviderDefaultTests(unittest.TestCase):
 
 
 class MainDispatchTests(unittest.TestCase):
+    def setUp(self):
+        # main() builds the GitHub client and reads the config file from the
+        # base branch before resolving the rest of its settings.
+        for patcher in (
+            patch.dict(os.environ, {"GITHUB_TOKEN": "t", "GITHUB_PR_ID": "1"}),
+            patch("main.load_repo_config", return_value={}),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
     @patch("main.build_provider")
     @patch("main.GithubClient")
     @patch("main.get_env_vars")

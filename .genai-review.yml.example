@@ -4,13 +4,18 @@
 # Action inputs in the workflow take precedence over anything here, so a
 # workflow can always override the repository's defaults.
 #
+# The file is read from the pull request's base branch, not from the pull
+# request itself, so a change to this file takes effect once it is merged.
+# That is deliberate: otherwise a pull request could configure its own review.
+#
 # There is deliberately no `api_key` key. Credentials belong in a repository
-# secret; a key in a file here is a key that gets committed by accident.
+# secret; a key in a file here is a key that gets committed by accident. For
+# the same reason there is no `base_url`: it decides which server receives the
+# key, so it can only be set as an action input.
 
 # --- which model reviews the code ---------------------------------------
 provider: gemini            # gemini | openai | anthropic | openai-compatible
 # model: gemini-3.8-flash   # defaults to a cost-conscious model per provider
-# base_url: http://localhost:11434/v1   # for openai-compatible only
 
 # --- how the review is posted -------------------------------------------
 mode: review                # review (inline comments) | files | patch (v2 behaviour)
