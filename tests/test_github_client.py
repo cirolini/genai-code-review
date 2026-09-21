@@ -76,6 +76,25 @@ class TestGithubClient(unittest.TestCase):
         self.mock_repo.get_contents.assert_called_with(self.filename, ref=self.commit_sha)
         self.assertEqual(content, "file content")
 
+    def test_get_base_file_reads_the_base_commit_not_the_head(self):
+        mock_pr = MagicMock()
+        mock_pr.base.sha = "base-sha"
+        self.mock_repo.get_pull.return_value = mock_pr
+        mock_content = MagicMock()
+        mock_content.decoded_content = b"max_comments: 2\n"
+        self.mock_repo.get_contents.return_value = mock_content
+
+        text = self.github_client.get_base_file(self.pr_id, ".genai-review.yml")
+        self.mock_repo.get_contents.assert_called_with(".genai-review.yml", ref="base-sha")
+        self.assertEqual(text, "max_comments: 2\n")
+
+    def test_get_base_file_returns_none_when_the_file_is_absent(self):
+        from github import UnknownObjectException
+
+        self.mock_repo.get_pull.return_value = MagicMock()
+        self.mock_repo.get_contents.side_effect = UnknownObjectException(404, "Not Found", {})
+        self.assertIsNone(self.github_client.get_base_file(self.pr_id, ".genai-review.yml"))
+
     @patch('clients.github_client.requests.get')
     def test_get_pr_patch(self, mock_get):
         mock_response = MagicMock()

@@ -61,6 +61,13 @@ class RunReport:
     repaired: bool = False
     panel = None
     results: list = field(default_factory=list)
+    # Why an incremental review fell back to the whole pull request, if it did.
+    full_review_reason: str | None = None
+    # The inline comments were rejected by GitHub; the summary lists them instead.
+    post_failed: bool = False
+    # The SHA the next run will diff from. It only advances past this run's
+    # head when this run actually covered everything and delivered it.
+    next_base_sha: str | None = None
 
     @property
     def fully_reviewed(self) -> bool:
@@ -79,13 +86,19 @@ def execute(github_client, build_member, pr_id, settings: ReviewSettings) -> Run
     previous = sticky.previous_run(github_client, pr_id)
     report.head_sha = github_client.get_pr_head_sha(pr_id)
 
-    patch, report.base_sha, report.incremental = _select_diff(
+    patch, report.base_sha, report.incremental, report.full_review_reason = _select_diff(
         github_client, pr_id, previous, settings, report.head_sha
     )
 
     parsed = parse_diff(patch)
+    # Comments must land on lines of the pull request's own diff: GitHub
+    # rejects the whole review over a single line outside it. An incremental
+    # diff is checked against the full one, so that anything it carries that is
+    # not part of the pull request can neither be reviewed nor commented on.
+    placement = parse_diff(github_client.get_pr_patch(pr_id)) if report.incremental else parsed
     reviewable, report.ignored_paths = partition(
-        _reviewable_paths(parsed), settings.ignore_paths
+        [p for p in _reviewable_paths(parsed) if placement.get(p) is not None],
+        settings.ignore_paths,
     )
 
     if not reviewable:
@@ -107,7 +120,7 @@ def execute(github_client, build_member, pr_id, settings: ReviewSettings) -> Run
             outcome = run_review(
                 provider,
                 chunk.text,
-                parsed,
+                placement,
                 language=settings.language,
                 custom_prompt=settings.custom_prompt,
                 schema=FINDINGS_SCHEMA,
@@ -134,7 +147,7 @@ def execute(github_client, build_member, pr_id, settings: ReviewSettings) -> Run
         already_posted_keys=set(previous.get("posted", [])),
     )
 
-    _publish(github_client, pr_id, report, parsed, previous)
+    _publish(github_client, pr_id, report, placement, previous)
     return report
 
 
@@ -154,52 +167,98 @@ def _select_diff(github_client, pr_id, previous, settings, head_sha):
     """
     Decide what to review: everything, or only what is new.
 
+    Returns (patch, base_sha, incremental, reason_for_full_review).
+
     Falls back to the full diff whenever the incremental path is not clearly
-    safe — no previous SHA, the comparison fails, or it comes back empty. A
-    review that covers too much is a waste; one that covers too little while
-    claiming otherwise is a lie.
+    safe — no previous SHA, history rewritten, a merge in the range, the
+    comparison fails, or it comes back empty. A review that covers too much is
+    a waste; one that covers too little while claiming otherwise is a lie.
     """
     last_sha = previous.get("last_reviewed_sha")
 
     if not (settings.incremental and last_sha and head_sha and last_sha != head_sha):
-        return github_client.get_pr_patch(pr_id), None, False
+        return github_client.get_pr_patch(pr_id), None, False, None
 
     try:
-        patch = github_client.get_compare_patch(last_sha, head_sha)
+        reason = _unsafe_range(github_client.get_compare(last_sha, head_sha))
+        patch = None if reason else github_client.get_compare_patch(last_sha, head_sha)
     except Exception:
         logger.exception(
             "Could not diff %s..%s; reviewing the whole pull request", last_sha, head_sha
         )
-        return github_client.get_pr_patch(pr_id), None, False
+        reason = "the comparison with the last review failed"
+        patch = None
 
-    if not patch or not patch.strip():
+    if patch is not None and not patch.strip():
         logger.info("No changes since %s; reviewing the whole pull request", last_sha)
-        return github_client.get_pr_patch(pr_id), None, False
+        reason, patch = None, None
+
+    if patch is None:
+        if reason:
+            logger.info("Reviewing the whole pull request: %s", reason)
+        return github_client.get_pr_patch(pr_id), None, False, reason
 
     logger.info("Incremental review of %s..%s", last_sha[:7], head_sha[:7])
-    return patch, last_sha, True
+    return patch, last_sha, True, None
+
+
+def _unsafe_range(comparison) -> str | None:
+    """
+    Why the commits since the last review cannot be diffed on their own, or None.
+
+    A rebase or force-push leaves the last reviewed commit off the branch, and
+    the comparison then runs from an old merge base. A merge from the base
+    branch brings in commits that are not part of the pull request. Either way
+    the diff contains lines GitHub will not accept a comment on.
+    """
+    status = comparison.get("status")
+    if status != "ahead":
+        return f"the branch history was rewritten since the last review ({status})"
+
+    commits = comparison.get("commits") or []
+    if comparison.get("total_commits", len(commits)) > len(commits):
+        return "too many commits since the last review to check them"
+    if any(len(commit.get("parents") or []) > 1 for commit in commits):
+        return "a merge commit was added since the last review"
+    return None
 
 
 def _publish(github_client, pr_id, report, parsed, previous, nothing_to_review=False):
-    """Post the inline comments and update the single sticky summary."""
+    """
+    Post the inline comments and update the single sticky summary.
+
+    State only moves forward for what actually happened. Findings count as
+    posted only if the review request succeeded, and the last reviewed SHA only
+    advances if this run covered everything — otherwise the next run would diff
+    from here, and whatever this run skipped would drop out of the summary
+    without ever having been reviewed.
+    """
     comments = [_inline_comment(f) for f in report.budget.posted]
-    body = build_summary(report, parsed, nothing_to_review=nothing_to_review)
 
     if comments:
         try:
             github_client.create_review(pr_id, comments, "")
         except Exception:
-            logger.exception("Could not post inline comments; the summary will still be posted")
+            logger.exception("Could not post inline comments; listing them in the summary")
+            report.post_failed = True
 
     posted_keys = set(previous.get("posted", []))
-    posted_keys.update(fingerprint(f) for f in report.budget.posted)
+    if not report.post_failed:
+        posted_keys.update(fingerprint(f) for f in report.budget.posted)
+
+    if nothing_to_review or (report.fully_reviewed and not report.post_failed):
+        report.next_base_sha = report.head_sha
+    else:
+        report.next_base_sha = previous.get("last_reviewed_sha")
+
+    body = build_summary(report, parsed, nothing_to_review=nothing_to_review)
 
     sticky.upsert(
         github_client,
         pr_id,
         body,
         sticky.build_state(
-            last_reviewed_sha=report.head_sha,
+            last_reviewed_sha=report.next_base_sha,
             posted_fingerprints=posted_keys,
             suppressed_count=len(report.budget.suppressed),
         ),
@@ -212,7 +271,20 @@ def _inline_comment(finding):
         "",
         finding.rationale,
     ]
-    if finding.suggestion:
+    if finding.suggestion and finding.relocated:
+        # The model's line numbers did not match the diff and the comment was
+        # moved. Its suggestion was written for the original lines, so a
+        # one-click "Commit suggestion" would overwrite the wrong code.
+        parts += [
+            "",
+            "Suggested change (not offered as a one-click suggestion: the line "
+            "numbers were adjusted to fit the diff, so check where it applies):",
+            "",
+            "```",
+            finding.suggestion.rstrip(),
+            "```",
+        ]
+    elif finding.suggestion:
         parts += ["", "```suggestion", finding.suggestion.rstrip(), "```"]
     parts += ["", f"<sub>confidence {finding.confidence:.0%}</sub>"]
 
@@ -250,6 +322,8 @@ def build_summary(report, parsed, nothing_to_review=False) -> str:
             "",
             "The model did not return output matching the required schema, even after "
             "a repair attempt. **This diff was not reviewed.**",
+            "",
+            *_coverage(report),
         ]
         return "\n".join([*lines, "", _footer(report)])
 
@@ -264,6 +338,20 @@ def build_summary(report, parsed, nothing_to_review=False) -> str:
                 lines.append(f"- **`{path}`** — {reason}")
 
     lines += ["", "### Findings", "", _counts_line(report)]
+
+    if report.post_failed:
+        lines += [
+            "",
+            "**GitHub rejected the inline comments**, so the findings that would "
+            "have been posted are listed here instead. They will be tried again "
+            "on the next push.",
+            "",
+        ]
+        for finding in sorted(posted, key=lambda f: f.rank):
+            lines.append(
+                f"- `{finding.file}:{finding.line_start}` — **{finding.severity}** "
+                f"{finding.title}"
+            )
 
     suppressed = report.budget.suppressed
     if suppressed:
@@ -328,7 +416,8 @@ def _counts_line(report) -> str:
     counts = budget.counts_by_severity(report.all_findings)
     by_severity = ", ".join(f"{count} {name}" for name, count in counts.items()) or "none"
 
-    parts = [f"{len(budget.posted)} posted"]
+    verb = "not posted (see below)" if report.post_failed else "posted"
+    parts = [f"{len(budget.posted)} {verb}"]
     if budget.over_budget:
         parts.append(f"{len(budget.over_budget)} over budget")
     if budget.below_threshold:
@@ -363,8 +452,22 @@ def _coverage(report) -> list[str]:
             f"- Only changes since `{(report.base_sha or '')[:7]}` were reviewed. "
             "Earlier commits were reviewed in previous runs."
         )
+    if report.full_review_reason:
+        lines.append(
+            f"- The whole pull request was reviewed again: {report.full_review_reason}."
+        )
     if report.parse_failed:
         lines.append("- Part of the diff produced unusable model output and was not reviewed.")
+    if not report.fully_reviewed or report.post_failed:
+        since = (
+            f"everything since `{report.next_base_sha[:7]}`"
+            if report.next_base_sha
+            else "the whole pull request"
+        )
+        lines.append(
+            f"- This run was incomplete, so the next push reviews {since} again "
+            "rather than only its own commits."
+        )
     return lines
 
 
